@@ -1,6 +1,6 @@
 # System Test Application
 
-A modern Java Swing application for testing system installations and verifying Java functionality.
+An application for testing system installations.
 
 ## Features
 
@@ -8,7 +8,6 @@ A modern Java Swing application for testing system installations and verifying J
 - 🌙 **Dark/Light mode** support
 - ✅ **System validation** tests
 - 🚀 **Cross-platform** compatibility
-- 📦 **No Java installation** required (native packages)
 
 ## Quick Start
 
