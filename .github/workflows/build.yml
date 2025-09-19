@@ -26,7 +26,7 @@ jobs:
         distribution: 'temurin'
     
     - name: Cache Gradle packages
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.gradle/caches
@@ -76,28 +76,28 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
     
     - name: Upload macOS artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: matrix.os == 'macos-latest'
       with:
         name: macos-packages
         path: build/distributions/*.dmg
     
     - name: Upload Windows artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: matrix.os == 'windows-latest'
       with:
         name: windows-packages
         path: build/distributions/*.msi
     
     - name: Upload Linux artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: matrix.os == 'ubuntu-latest'
       with:
         name: linux-packages
         path: build/distributions/*.deb
     
     - name: Upload portable artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: portable-packages-${{ matrix.os }}
         path: |
