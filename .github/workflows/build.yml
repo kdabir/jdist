@@ -44,32 +44,36 @@ jobs:
       if: matrix.os != 'windows-latest'
     
     - name: Build application (Windows)
-      run: gradlew.bat build
+      run: .\gradlew.bat build
       if: matrix.os == 'windows-latest'
+      shell: cmd
     
     - name: Create fat JAR
       run: ./gradlew fatJar
       if: matrix.os != 'windows-latest'
     
     - name: Create fat JAR (Windows)
-      run: gradlew.bat fatJar
+      run: .\gradlew.bat fatJar
       if: matrix.os == 'windows-latest'
+      shell: cmd
     
     - name: Create distribution ZIP
       run: ./gradlew createDistZip
       if: matrix.os != 'windows-latest'
     
     - name: Create distribution ZIP (Windows)
-      run: gradlew.bat createDistZip
+      run: .\gradlew.bat createDistZip
       if: matrix.os == 'windows-latest'
+      shell: cmd
     
     - name: Package for macOS
       run: ./gradlew packageMac
       if: matrix.os == 'macos-latest'
     
     - name: Package for Windows
-      run: gradlew.bat packageWindows
+      run: .\gradlew.bat packageWindows
       if: matrix.os == 'windows-latest'
+      shell: cmd
     
     - name: Package for Linux
       run: ./gradlew packageLinux
