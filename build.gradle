@@ -1,0 +1,47 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group = 'com.example'
+version = '1.0.0'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // No external dependencies needed for basic Swing app
+}
+
+application {
+    mainClass = 'com.example.HelloWorldApp'
+}
+
+// Ensure proper encoding
+compileJava {
+    options.encoding = 'UTF-8'
+}
+
+// JVM arguments for macOS
+run {
+    jvmArgs = [
+        '-Dapple.laf.useScreenMenuBar=true',
+        '-Dcom.apple.macos.useScreenMenuBar=true',
+        '-Dcom.apple.mrj.application.apple.menu.about.name=HelloWorldApp'
+    ]
+}
+
+// Create a runnable JAR
+jar {
+    manifest {
+        attributes(
+            'Main-Class': 'com.example.HelloWorldApp'
+        )
+    }
+}
