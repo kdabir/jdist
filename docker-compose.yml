@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  build-macos:
+    image: openjdk:24-jdk-slim
+    platform: linux/amd64
+    volumes:
+      - .:/app
+      - gradle-cache:/root/.gradle
+    working_dir: /app
+    command: >
+      sh -c "
+        apt-get update && 
+        apt-get install -y gradle && 
+        gradle build fatJar createDistZip &&
+        echo 'macOS build completed (portable only)'
+      "
+
+  build-windows:
+    image: openjdk:24-jdk-slim
+    platform: linux/amd64
+    volumes:
+      - .:/app
+      - gradle-cache:/root/.gradle
+    working_dir: /app
+    command: >
+      sh -c "
+        apt-get update && 
+        apt-get install -y gradle && 
+        gradle build fatJar createDistZip &&
+        echo 'Windows build completed (portable only)'
+      "
+
+  build-linux:
+    image: openjdk:24-jdk-slim
+    platform: linux/amd64
+    volumes:
+      - .:/app
+      - gradle-cache:/root/.gradle
+    working_dir: /app
+    command: >
+      sh -c "
+        apt-get update && 
+        apt-get install -y gradle && 
+        gradle build fatJar createDistZip packageLinux &&
+        echo 'Linux build completed with native packages'
+      "
+
+volumes:
+  gradle-cache:

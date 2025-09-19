@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'application'
+    id 'jvm-test-suite'
 }
 
 group = 'com.example'
@@ -53,4 +54,125 @@ jar {
             'Main-Class': 'com.example.HelloWorldApp'
         )
     }
+}
+
+// jpackage configuration for native installers
+application {
+    mainClass = 'com.example.HelloWorldApp'
+    applicationName = 'SystemTest'
+    applicationDefaultJvmArgs = [
+        '-Dapple.laf.useScreenMenuBar=true',
+        '-Dcom.apple.macos.useScreenMenuBar=true',
+        '-Dcom.apple.mrj.application.apple.menu.about.name=System Test'
+    ]
+}
+
+// jpackage tasks for different platforms
+tasks.register('packageMac', Exec) {
+    group = 'distribution'
+    description = 'Create macOS .dmg installer'
+    dependsOn 'jar'
+    
+    commandLine 'jpackage', 
+        '--input', 'build/libs',
+        '--main-jar', 'hello-world-swing-1.0.0.jar',
+        '--main-class', 'com.example.HelloWorldApp',
+        '--name', 'System Test',
+        '--app-version', '1.0.0',
+        '--vendor', 'Example Corp',
+        '--description', 'Java Swing System Test Application',
+        '--type', 'dmg',
+        '--dest', 'build/distributions',
+        '--java-options', '--enable-preview',
+        '--java-options', '-Dapple.laf.useScreenMenuBar=true',
+        '--java-options', '-Dcom.apple.macos.useScreenMenuBar=true',
+        '--java-options', '-Dcom.apple.mrj.application.apple.menu.about.name=System Test'
+}
+
+tasks.register('packageWindows', Exec) {
+    group = 'distribution'
+    description = 'Create Windows .msi installer'
+    dependsOn 'jar'
+    
+    commandLine 'jpackage',
+        '--input', 'build/libs',
+        '--main-jar', 'hello-world-swing-1.0.0.jar',
+        '--main-class', 'com.example.HelloWorldApp',
+        '--name', 'System Test',
+        '--app-version', '1.0.0',
+        '--vendor', 'Example Corp',
+        '--description', 'Java Swing System Test Application',
+        '--type', 'msi',
+        '--dest', 'build/distributions',
+        '--java-options', '--enable-preview',
+        '--win-console',
+        '--win-dir-chooser',
+        '--win-menu',
+        '--win-shortcut'
+}
+
+tasks.register('packageLinux', Exec) {
+    group = 'distribution'
+    description = 'Create Linux .deb and .rpm packages'
+    dependsOn 'jar'
+    
+    commandLine 'jpackage',
+        '--input', 'build/libs',
+        '--main-jar', 'hello-world-swing-1.0.0.jar',
+        '--main-class', 'com.example.HelloWorldApp',
+        '--name', 'System Test',
+        '--app-version', '1.0.0',
+        '--vendor', 'Example Corp',
+        '--description', 'Java Swing System Test Application',
+        '--type', 'deb',
+        '--dest', 'build/distributions',
+        '--java-options', '--enable-preview',
+        '--linux-menu-group', 'Development',
+        '--linux-shortcut'
+}
+
+// Create fat JAR with all dependencies
+tasks.register('fatJar', Jar) {
+    group = 'distribution'
+    description = 'Create fat JAR with all dependencies'
+    dependsOn 'jar'
+    
+    archiveBaseName = 'system-test-fat'
+    archiveVersion = '1.0.0'
+    archiveClassifier = 'all'
+    
+    from sourceSets.main.output
+    from configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    
+    manifest {
+        attributes(
+            'Main-Class': 'com.example.HelloWorldApp',
+            'Implementation-Title': 'System Test Application',
+            'Implementation-Version': '1.0.0',
+            'Implementation-Vendor': 'Example Corp'
+        )
+    }
+    
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+// Create distribution ZIP
+tasks.register('createDistZip', Zip) {
+    group = 'distribution'
+    description = 'Create distribution ZIP'
+    dependsOn 'fatJar'
+    
+    from 'build/libs/system-test-fat-1.0.0-all.jar'
+    from 'README.md'
+    from 'LICENSE'
+    
+    archiveFileName = 'system-test-1.0.0.zip'
+    destinationDirectory = file('build/distributions')
+}
+
+// Create all packages
+tasks.register('packageAll') {
+    group = 'distribution'
+    description = 'Create packages for all platforms'
+    dependsOn 'packageMac', 'packageWindows', 'packageLinux', 'createDistZip'
 }

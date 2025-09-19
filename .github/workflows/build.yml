@@ -1,0 +1,116 @@
+name: Build and Package
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [ published ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        java-version: [24]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up JDK ${{ matrix.java-version }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ matrix.java-version }}
+        distribution: 'temurin'
+    
+    - name: Cache Gradle packages
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+    
+    - name: Make gradlew executable
+      run: chmod +x ./gradlew
+      if: matrix.os != 'windows-latest'
+    
+    - name: Build application
+      run: ./gradlew build
+      if: matrix.os != 'windows-latest'
+    
+    - name: Build application (Windows)
+      run: gradlew.bat build
+      if: matrix.os == 'windows-latest'
+    
+    - name: Create fat JAR
+      run: ./gradlew fatJar
+      if: matrix.os != 'windows-latest'
+    
+    - name: Create fat JAR (Windows)
+      run: gradlew.bat fatJar
+      if: matrix.os == 'windows-latest'
+    
+    - name: Create distribution ZIP
+      run: ./gradlew createDistZip
+      if: matrix.os != 'windows-latest'
+    
+    - name: Create distribution ZIP (Windows)
+      run: gradlew.bat createDistZip
+      if: matrix.os == 'windows-latest'
+    
+    - name: Package for macOS
+      run: ./gradlew packageMac
+      if: matrix.os == 'macos-latest'
+    
+    - name: Package for Windows
+      run: gradlew.bat packageWindows
+      if: matrix.os == 'windows-latest'
+    
+    - name: Package for Linux
+      run: ./gradlew packageLinux
+      if: matrix.os == 'ubuntu-latest'
+    
+    - name: Upload macOS artifacts
+      uses: actions/upload-artifact@v3
+      if: matrix.os == 'macos-latest'
+      with:
+        name: macos-packages
+        path: build/distributions/*.dmg
+    
+    - name: Upload Windows artifacts
+      uses: actions/upload-artifact@v3
+      if: matrix.os == 'windows-latest'
+      with:
+        name: windows-packages
+        path: build/distributions/*.msi
+    
+    - name: Upload Linux artifacts
+      uses: actions/upload-artifact@v3
+      if: matrix.os == 'ubuntu-latest'
+      with:
+        name: linux-packages
+        path: build/distributions/*.deb
+    
+    - name: Upload portable artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: portable-packages-${{ matrix.os }}
+        path: |
+          build/distributions/*.zip
+          build/libs/*-fat-*.jar
+    
+    - name: Create Release
+      if: github.event_name == 'release'
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          build/distributions/*.dmg
+          build/distributions/*.msi
+          build/distributions/*.deb
+          build/distributions/*.zip
+          build/libs/*-fat-*.jar
