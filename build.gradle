@@ -7,8 +7,17 @@ group = 'com.example'
 version = '1.0.0'
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = JavaVersion.VERSION_24
+    targetCompatibility = JavaVersion.VERSION_24
+}
+
+// Enable preview features for latest Java features
+compileJava {
+    options.compilerArgs += ['--enable-preview']
+}
+
+run {
+    jvmArgs += ['--enable-preview']
 }
 
 repositories {

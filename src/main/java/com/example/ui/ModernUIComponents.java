@@ -71,9 +71,9 @@ public class ModernUIComponents {
         button.setBorderPainted(false);
         button.setOpaque(true);
         
-        if (actionListener != null) {
-            button.addActionListener(actionListener);
-        }
+        // Modern Java: Optional handling
+        java.util.Optional.ofNullable(actionListener)
+                .ifPresent(button::addActionListener);
         
         // Apply theme
         themeManager.applyThemeToButton(button);
@@ -95,7 +95,7 @@ public class ModernUIComponents {
         button.setOpaque(false);
         button.setToolTipText("Toggle Dark Mode");
         
-        // Add theme toggle functionality
+        // Modern Java: Lambda expression with ternary operator
         button.addActionListener(e -> {
             themeManager.toggleTheme();
             button.setText(themeManager.isDarkMode() ? "☀️" : "🌙");
@@ -221,6 +221,35 @@ public class ModernUIComponents {
      */
     public static void updateTheme(Container container) {
         themeManager.applyThemeToPanel((JPanel) container);
+    }
+    
+    
+    /**
+     * Modern Java: Creates multiple buttons using Stream API
+     */
+    public static java.util.List<JButton> createModernButtons(java.util.Map<String, ActionListener> buttonConfigs) {
+        return buttonConfigs.entrySet().stream()
+                .map(entry -> createModernButton(entry.getKey(), entry.getValue()))
+                .collect(java.util.stream.Collectors.toList());
+    }
+    
+    /**
+     * Modern Java: Creates a status message with string interpolation
+     */
+    public static String createStatusMessage(String user, boolean success, String testType) {
+        return success 
+            ? """
+                ✅ %s Test Successful!
+                User: %s
+                Status: All systems operational
+                Time: %s
+                """.formatted(testType, user, java.time.LocalTime.now())
+            : """
+                ❌ %s Test Failed!
+                User: %s
+                Status: System error detected
+                Time: %s
+                """.formatted(testType, user, java.time.LocalTime.now());
     }
     
     /**

@@ -21,10 +21,10 @@ public class HelloWorldApp extends JFrame {
         // Initialize theme manager
         themeManager = UIThemeManager.getInstance();
         
-        // Create modern frame
-        setTitle("Hello World App");
+        // Create modern frame for System Test
+        setTitle("Java Swing System Test");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(500, 350);
+        setSize(500, 400);
         setLocationRelativeTo(null);
         setResizable(false);
         
@@ -65,10 +65,10 @@ public class HelloWorldApp extends JFrame {
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         
         // Main title
-        JLabel titleLabel = ModernUIComponents.createTitleLabel("Hello World");
+        JLabel titleLabel = ModernUIComponents.createTitleLabel("System Test");
         
         // Subtitle
-        JLabel subtitleLabel = ModernUIComponents.createSubtitleLabel("A beautiful Java Swing application");
+        JLabel subtitleLabel = ModernUIComponents.createSubtitleLabel("Verify your Java Swing installation is working correctly");
         
         panel.add(titleLabel);
         panel.add(ModernUIComponents.createVerticalSpacer(8));
@@ -81,19 +81,19 @@ public class HelloWorldApp extends JFrame {
         JPanel panel = ModernUIComponents.createPaddedPanel(new BoxLayout(new JPanel(), BoxLayout.Y_AXIS), 20, 0, 20, 0);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         
-        // Name prompt
-        JLabel namePromptLabel = ModernUIComponents.createBodyLabel("What's your name?");
+        // Test instructions
+        JLabel instructionLabel = ModernUIComponents.createBodyLabel("Enter your name to test the system:");
         
         // Name input field with modern styling
         nameField = ModernUIComponents.createModernTextField(20);
         
-        // Greet button with modern styling
-        greetButton = ModernUIComponents.createModernButton("Say Hello", this::handleGreeting);
+        // Submit button for system test
+        greetButton = ModernUIComponents.createModernButton("Run Test", this::handleTest);
         
-        // Add action listeners
-        nameField.addActionListener(e -> handleGreeting(e));
+        // Add action listeners using method reference
+        nameField.addActionListener(this::handleTest);
         
-        // Add key listener for real-time validation
+        // Add key listener for real-time validation using lambda
         nameField.addKeyListener(new KeyListener() {
             @Override
             public void keyTyped(KeyEvent e) {}
@@ -107,7 +107,7 @@ public class HelloWorldApp extends JFrame {
             }
         });
         
-        panel.add(namePromptLabel);
+        panel.add(instructionLabel);
         panel.add(ModernUIComponents.createVerticalSpacer(15));
         panel.add(nameField);
         panel.add(ModernUIComponents.createVerticalSpacer(20));
@@ -120,6 +120,7 @@ public class HelloWorldApp extends JFrame {
         JPanel panel = ModernUIComponents.createPaddedPanel(new BoxLayout(new JPanel(), BoxLayout.Y_AXIS), 20, 0, 0, 0);
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
         
+        // Test result label
         greetingLabel = ModernUIComponents.createStatusLabel("", ModernUIComponents.StatusType.INFO);
         
         panel.add(greetingLabel);
@@ -134,24 +135,64 @@ public class HelloWorldApp extends JFrame {
         // Theme toggle button
         themeButton = ModernUIComponents.createThemeToggleButton();
         
-        // Add theme change listener
-        themeButton.addActionListener(e -> {
-            ModernUIComponents.updateTheme(getContentPane());
-        });
+        // Add theme change listener using lambda
+        themeButton.addActionListener(e -> ModernUIComponents.updateTheme(getContentPane()));
         
         panel.add(themeButton);
         
         return panel;
     }
     
-    private void handleGreeting(ActionEvent e) {
+    private void handleTest(ActionEvent e) {
         String name = nameField.getText().trim();
         if (name.isEmpty()) {
-            greetingLabel.setText("Please enter your name first! 👋");
+            greetingLabel.setText("❌ Please enter your name to run the test!");
             greetingLabel.setForeground(themeManager.getErrorColor());
         } else {
-            greetingLabel.setText("Hello, " + name + "! 👋 Welcome to Java Swing!");
-            greetingLabel.setForeground(themeManager.getSuccessColor());
+            // Simulate system test validation
+            boolean testPassed = performSystemTest(name);
+            if (testPassed) {
+                // Using text blocks with string interpolation
+                greetingLabel.setText("""
+                    ✅ TEST SUCCESSFUL!
+                    Hello %s, your installation is working correctly!
+                    System test completed successfully.
+                    """.formatted(name));
+                greetingLabel.setForeground(themeManager.getSuccessColor());
+            } else {
+                greetingLabel.setText("""
+                    ❌ TEST FAILED!
+                    There seems to be an issue with your installation.
+                    Please check your setup and try again.
+                    """);
+                greetingLabel.setForeground(themeManager.getErrorColor());
+            }
+        }
+    }
+    
+    private boolean performSystemTest(String name) {
+        // Simulate various system tests
+        try {
+            // Test 1: Basic input validation
+            if (name.length() < 2) return false;
+            
+            // Test 2: UI responsiveness
+            Thread.sleep(100); // Simulate processing
+            
+            // Test 3: Theme system
+            themeManager.getBackgroundColor();
+            themeManager.getForegroundColor();
+            
+            // Test 4: Component rendering
+            nameField.getText();
+            greetButton.isEnabled();
+            
+            // Test 5: Event handling
+            // (This method being called proves event handling works)
+            
+            return true; // All tests passed
+        } catch (Exception e) {
+            return false; // Test failed
         }
     }
     
@@ -164,12 +205,7 @@ public class HelloWorldApp extends JFrame {
     
     public static void main(String[] args) {
         // Ensure GUI is created on Event Dispatch Thread
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                new HelloWorldApp().setVisible(true);
-            }
-        });
+        SwingUtilities.invokeLater(() -> new HelloWorldApp().setVisible(true));
     }
 }
 

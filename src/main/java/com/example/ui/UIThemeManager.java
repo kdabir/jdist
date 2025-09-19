@@ -81,6 +81,38 @@ public class UIThemeManager {
         return System.getProperty("os.name").toLowerCase().contains("mac");
     }
     
+    // Modern Java features: Stream API, Optional, and Switch Expressions
+    public java.util.Optional<Color> getColorByName(String colorName) {
+        return java.util.Optional.ofNullable(switch (colorName.toLowerCase()) {
+            case "background" -> getBackgroundColor();
+            case "foreground" -> getForegroundColor();
+            case "input-bg" -> getInputBackgroundColor();
+            case "input-fg" -> getInputForegroundColor();
+            case "button-bg" -> getButtonBackgroundColor();
+            case "button-fg" -> getButtonForegroundColor();
+            case "success" -> getSuccessColor();
+            case "error" -> getErrorColor();
+            case "warning" -> getWarningColor();
+            default -> null;
+        });
+    }
+    
+    // Modern Java: String interpolation for debug information
+    public String getThemeInfo() {
+        return """
+            Theme Information:
+            - Mode: %s
+            - Background: %s
+            - Foreground: %s
+            - Button: %s
+            """.formatted(
+                isDarkMode ? "Dark" : "Light",
+                getBackgroundColor(),
+                getForegroundColor(),
+                getButtonBackgroundColor()
+            );
+    }
+    
     public void setDarkMode(boolean darkMode) {
         this.isDarkMode = darkMode;
     }
@@ -152,10 +184,9 @@ public class UIThemeManager {
         panel.setBackground(getBackgroundColor());
         panel.setForeground(getForegroundColor());
         
-        // Recursively apply to child components
-        for (Component comp : panel.getComponents()) {
-            applyThemeToComponent(comp);
-        }
+        // Modern Java: Stream API for processing components
+        java.util.Arrays.stream(panel.getComponents())
+                .forEach(this::applyThemeToComponent);
     }
     
     public void applyThemeToLabel(JLabel label) {
