@@ -46,6 +46,11 @@ jobs:
         distribution: graalvm
         components: native-image
         
+    - name: Install jpackage dependencies (Linux)
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y fakeroot dpkg-dev
+        
     - name: Cache Gradle packages
       uses: actions/cache@v4
       with:
@@ -63,7 +68,7 @@ jobs:
         ./gradlew detectModuleDependencies
         ./gradlew :cli:nativeCompile :service:nativeCompile
         ./gradlew createAllJlinkImages
-        ./gradlew packageAll
+        ./gradlew packageLinux
         ./gradlew distributionReport moduleAnalysisReport
         
     - name: Create release assets

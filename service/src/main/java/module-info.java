@@ -1,10 +1,10 @@
 module com.example.service {
     requires com.example.shared;
-    requires com.fasterxml.jackson.core;
-    requires com.fasterxml.jackson.databind;
     requires io.javalin;
-    requires java.nio;
     requires org.slf4j;
-
+    requires com.fasterxml.jackson.databind;
+    requires com.fasterxml.jackson.core;
+    requires java.logging;
+    
     exports com.example.service;
 }

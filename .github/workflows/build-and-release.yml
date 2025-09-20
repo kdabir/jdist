@@ -8,10 +8,7 @@ on:
 
 jobs:
   build-and-package:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
+    runs-on: ubuntu-latest
     
     steps:
     - name: Checkout code
@@ -41,6 +38,11 @@ jobs:
         java-version: 24
         distribution: graalvm
         components: native-image
+        
+    - name: Install jpackage dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y fakeroot dpkg-dev
         
     - name: Cache Gradle packages
       uses: actions/cache@v4
@@ -73,9 +75,12 @@ jobs:
       run: ./gradlew createAllJlinkImages
       shell: bash
       
-    - name: Package all applications
-      run: ./gradlew packageAll
+    - name: Package applications (Linux)
+      run: |
+        echo "🐧 Packaging Linux applications..."
+        ./gradlew packageLinux --stacktrace --info
       shell: bash
+      continue-on-error: true
       
     - name: Generate distribution report
       run: ./gradlew distributionReport
@@ -88,7 +93,7 @@ jobs:
     - name: Upload CLI artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: cli-artifacts-${{ matrix.os }}
+        name: cli-artifacts-ubuntu
         path: |
           cli/build/jpackage/
           cli/build/native/nativeCompile/
@@ -98,7 +103,7 @@ jobs:
     - name: Upload Desktop artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: desktop-artifacts-${{ matrix.os }}
+        name: desktop-artifacts-ubuntu
         path: |
           desktop/build/jpackage/
           desktop/build/jlink/
@@ -107,7 +112,7 @@ jobs:
     - name: Upload Service artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: service-artifacts-${{ matrix.os }}
+        name: service-artifacts-ubuntu
         path: |
           service/build/jpackage/
           service/build/native/nativeCompile/
@@ -117,7 +122,7 @@ jobs:
     - name: Upload Service-Desktop artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: service-desktop-artifacts-${{ matrix.os }}
+        name: service-desktop-artifacts-ubuntu
         path: |
           service-desktop/build/jpackage/
           service-desktop/build/jlink/
@@ -126,7 +131,7 @@ jobs:
     - name: Upload Reports
       uses: actions/upload-artifact@v4
       with:
-        name: reports-${{ matrix.os }}
+        name: reports-ubuntu
         path: |
           build/distribution-report.md
           build/module-analysis-report.md

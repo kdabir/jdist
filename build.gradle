@@ -90,7 +90,7 @@ dependencies {
 }
 
 application {
-    mainClass = 'com.example.HelloWorldApp'
+    mainClass = 'com.example.desktop.DesktopApp'
 }
 
 // Ensure proper encoding
@@ -118,7 +118,7 @@ jar {
 
 // jpackage configuration for native installers
 application {
-    mainClass = 'com.example.HelloWorldApp'
+    mainClass = 'com.example.desktop.DesktopApp'
     applicationName = 'SystemTest'
     applicationDefaultJvmArgs = [
         '-Dapple.laf.useScreenMenuBar=true',
@@ -131,18 +131,22 @@ application {
 tasks.register('packageMac', Exec) {
     group = 'distribution'
     description = 'Create macOS .dmg installer'
-    dependsOn 'jar'
+    dependsOn ':desktop:jar'
+    
+    // Only run on macOS
+    onlyIf { System.getProperty('os.name').toLowerCase().contains('mac') }
     
     commandLine 'jpackage', 
-        '--input', 'build/libs',
-        '--main-jar', 'hello-world-swing-1.0.0.jar',
-        '--main-class', 'com.example.HelloWorldApp',
+        '--input', 'desktop/build/libs',
+        '--main-jar', 'desktop-1.0.0.jar',
+        '--main-class', 'com.example.desktop.DesktopApp',
         '--name', 'System Test',
         '--app-version', '1.0.0',
         '--vendor', 'Example Corp',
         '--description', 'Java Swing System Test Application',
         '--type', 'dmg',
-        '--dest', 'build/distributions',
+        '--dest', 'build/jpackage',
+        '--verbose',
         '--java-options', '--enable-preview',
         '--java-options', '-Dapple.laf.useScreenMenuBar=true',
         '--java-options', '-Dcom.apple.macos.useScreenMenuBar=true',
@@ -152,18 +156,22 @@ tasks.register('packageMac', Exec) {
 tasks.register('packageWindows', Exec) {
     group = 'distribution'
     description = 'Create Windows .msi installer'
-    dependsOn 'jar'
+    dependsOn ':desktop:jar'
+    
+    // Only run on Windows
+    onlyIf { System.getProperty('os.name').toLowerCase().contains('windows') }
     
     commandLine 'jpackage',
-        '--input', 'build/libs',
-        '--main-jar', 'hello-world-swing-1.0.0.jar',
-        '--main-class', 'com.example.HelloWorldApp',
+        '--input', 'desktop/build/libs',
+        '--main-jar', 'desktop-1.0.0.jar',
+        '--main-class', 'com.example.desktop.DesktopApp',
         '--name', 'System Test',
         '--app-version', '1.0.0',
         '--vendor', 'Example Corp',
         '--description', 'Java Swing System Test Application',
         '--type', 'msi',
-        '--dest', 'build/distributions',
+        '--dest', 'build/jpackage',
+        '--verbose',
         '--java-options', '--enable-preview',
         '--win-console',
         '--win-dir-chooser',
@@ -174,18 +182,22 @@ tasks.register('packageWindows', Exec) {
 tasks.register('packageLinux', Exec) {
     group = 'distribution'
     description = 'Create Linux .deb and .rpm packages'
-    dependsOn 'jar'
+    dependsOn ':desktop:jar'
+    
+    // Only run on Linux
+    onlyIf { System.getProperty('os.name').toLowerCase().contains('linux') }
     
     commandLine 'jpackage',
-        '--input', 'build/libs',
-        '--main-jar', 'hello-world-swing-1.0.0.jar',
-        '--main-class', 'com.example.HelloWorldApp',
+        '--input', 'desktop/build/libs',
+        '--main-jar', 'desktop-1.0.0.jar',
+        '--main-class', 'com.example.desktop.DesktopApp',
         '--name', 'System Test',
         '--app-version', '1.0.0',
         '--vendor', 'Example Corp',
         '--description', 'Java Swing System Test Application',
         '--type', 'deb',
-        '--dest', 'build/distributions',
+        '--dest', 'build/jpackage',
+        '--verbose',
         '--java-options', '--enable-preview',
         '--linux-menu-group', 'Development',
         '--linux-shortcut'

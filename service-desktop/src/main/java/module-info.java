@@ -1,11 +1,12 @@
-module com.example.service-desktop {
+module com.example.servicedesktop {
     requires com.example.service;
     requires com.example.shared;
-    requires com.fasterxml.jackson.core;
-    requires com.fasterxml.jackson.databind;
     requires io.javalin;
-    requires java.desktop;
     requires org.slf4j;
-
+    requires com.fasterxml.jackson.databind;
+    requires com.fasterxml.jackson.core;
+    requires java.logging;
+    requires java.desktop;
+    
     exports com.example.servicedesktop;
 }

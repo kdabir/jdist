@@ -94,6 +94,9 @@ task createJlinkImage(type: Exec) {
 task packageServiceDesktopMac(type: Exec) {
     dependsOn 'jar'
     
+    // Only run on macOS
+    onlyIf { System.getProperty('os.name').toLowerCase().contains('mac') }
+    
     commandLine 'jpackage',
         '--input', jar.archiveFile.get().asFile.parent,
         '--main-jar', jar.archiveFile.get().asFile.name,
@@ -107,6 +110,9 @@ task packageServiceDesktopMac(type: Exec) {
 task packageServiceDesktopWindows(type: Exec) {
     dependsOn 'jar'
     
+    // Only run on Windows
+    onlyIf { System.getProperty('os.name').toLowerCase().contains('windows') }
+    
     commandLine 'jpackage',
         '--input', jar.archiveFile.get().asFile.parent,
         '--main-jar', jar.archiveFile.get().asFile.name,
@@ -119,6 +125,9 @@ task packageServiceDesktopWindows(type: Exec) {
 
 task packageServiceDesktopLinux(type: Exec) {
     dependsOn 'jar'
+    
+    // Only run on Linux
+    onlyIf { System.getProperty('os.name').toLowerCase().contains('linux') }
     
     commandLine 'jpackage',
         '--input', jar.archiveFile.get().asFile.parent,

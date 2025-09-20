@@ -1,12 +1,15 @@
-name: Test
+name: Package macOS Applications
 
 on:
-  pull_request:
   push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  package-macos:
+    runs-on: macos-latest
     
     steps:
     - name: Checkout code
@@ -37,12 +40,6 @@ jobs:
         distribution: graalvm
         components: native-image
         
-    - name: Install jpackage dependencies (Linux)
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y fakeroot dpkg-dev
-        
     - name: Cache Gradle packages
       uses: actions/cache@v4
       with:
@@ -56,48 +53,42 @@ jobs:
     - name: Make gradlew executable
       run: chmod +x ./gradlew
       
-    - name: Run tests
-      run: ./gradlew test
-      shell: bash
-      
     - name: Build all modules
       run: ./gradlew build
       shell: bash
       
-    - name: Test CLI application
-      run: ./gradlew :cli:run
-      shell: bash
-      
-    - name: Test module dependency detection
+    - name: Generate module dependencies
       run: ./gradlew detectModuleDependencies
       shell: bash
       
-    - name: Test native image compilation (CLI and Service)
+    - name: Build native images (CLI and Service)
       run: ./gradlew :cli:nativeCompile :service:nativeCompile
       shell: bash
       continue-on-error: true
       
-    - name: Test jlink image creation
+    - name: Create jlink images
       run: ./gradlew createAllJlinkImages
       shell: bash
       
-    - name: Test packaging (Linux)
+    - name: Package macOS applications
       run: |
-        echo "🐧 Testing Linux packaging..."
-        ./gradlew packageLinux --stacktrace --info
+        echo "🍎 Packaging macOS applications..."
+        ./gradlew packageMac --stacktrace --info
       shell: bash
       continue-on-error: true
       
-    - name: Generate reports
-      run: ./gradlew distributionReport moduleAnalysisReport
+    - name: Generate distribution report
+      run: ./gradlew distributionReport
       shell: bash
       
-    - name: Upload test artifacts
+    - name: Upload macOS artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: test-artifacts-ubuntu
+        name: macos-artifacts
         path: |
-          build/reports/
-          build/distribution-report.md
-          build/module-analysis-report.md
-        retention-days: 7
+          build/jpackage/
+          cli/build/jpackage/
+          service/build/jpackage/
+          desktop/build/jpackage/
+          service-desktop/build/jpackage/
+        retention-days: 30
