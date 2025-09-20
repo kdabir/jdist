@@ -216,13 +216,13 @@ jobs:
       
     - name: Show Project Matrix
       run: |
-        echo "🏗️  Building System Test Suite for Windows:"
-        echo "   📱 Desktop App → Windows (.msi)"
-        echo "   💻 CLI App → Windows (native executable)"
-        echo "   🌐 Service App → Windows (native executable)"
-        echo "   🖥️  Service-Desktop App → Windows (.msi)"
+        echo "Building System Test Suite for Windows:"
+        echo "   Desktop App -> Windows (.msi)"
+        echo "   CLI App -> Windows (native executable)"
+        echo "   Service App -> Windows (native executable)"
+        echo "   Service-Desktop App -> Windows (.msi)"
         echo ""
-        echo "📦 Artifacts will be generated in:"
+        echo "Artifacts will be generated in:"
         echo "   - build/jpackage/ (Desktop & Service-Desktop)"
         echo "   - cli/build/jpackage/ (CLI native)"
         echo "   - service/build/jpackage/ (Service native)"
@@ -276,7 +276,7 @@ jobs:
       
     - name: Build Native Images
       run: |
-        echo "🔨 Building native images for Windows..."
+        echo "Building native images for Windows..."
         .\gradlew.bat :cli:nativeCompile :service:nativeCompile
       shell: cmd
       continue-on-error: true
@@ -287,45 +287,45 @@ jobs:
       
     - name: Package Windows applications
       run: |
-        echo "🪟 Packaging Windows applications..."
+        echo "Packaging Windows applications..."
         .\gradlew.bat packageWindows --stacktrace --info
       shell: cmd
       continue-on-error: true
       
     - name: Generate Compatibility Report
       run: |
-        echo "📊 Windows Build Compatibility Report"
-        echo "======================================"
+        echo "Windows Build Compatibility Report"
+        echo "=================================="
         echo ""
         echo "| App Type | Native | jlink+package |"
         echo "|----------|--------|---------------|"
         
         # Check CLI native
         if (Test-Path "cli\build\native\nativeCompile\cli.exe") {
-          echo "| CLI      | ✅ X   | ✅ X          |"
+          echo "| CLI      | X      | X             |"
         } else {
-          echo "| CLI      | ❌ Fail| ✅ X          |"
+          echo "| CLI      | Fail   | X             |"
         }
         
         # Check Desktop jlink+package
         if (Test-Path "desktop\build\jpackage") {
-          echo "| Desktop  | ❌ Fail| ✅ X          |"
+          echo "| Desktop  | Fail   | X             |"
         } else {
-          echo "| Desktop  | ❌ Fail| ❌ Fail       |"
+          echo "| Desktop  | Fail   | Fail          |"
         }
         
         # Check Service native
         if (Test-Path "service\build\native\nativeCompile\service.exe") {
-          echo "| Service  | ✅ X   | ✅ X          |"
+          echo "| Service  | X      | X             |"
         } else {
-          echo "| Service  | ❌ Fail| ✅ X          |"
+          echo "| Service  | Fail   | X             |"
         }
         
         # Check Service-Desktop jlink+package
         if (Test-Path "service-desktop\build\jpackage") {
-          echo "| Service-Desktop | ❌ Fail| ✅ X          |"
+          echo "| Service-Desktop | Fail   | X             |"
         } else {
-          echo "| Service-Desktop | ❌ Fail| ❌ Fail       |"
+          echo "| Service-Desktop | Fail   | Fail          |"
         }
       shell: powershell
       
