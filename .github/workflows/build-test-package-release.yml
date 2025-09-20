@@ -38,7 +38,7 @@ jobs:
       uses: graalvm/setup-graalvm@v1
       with:
         java-version: 24
-        distribution: oracle
+        distribution: graalvm
         components: native-image
         
     - name: Install jpackage dependencies
@@ -155,7 +155,7 @@ jobs:
       uses: graalvm/setup-graalvm@v1
       with:
         java-version: 24
-        distribution: oracle
+        distribution: graalvm
         components: native-image
         
     - name: Cache Gradle packages
@@ -257,7 +257,7 @@ jobs:
       uses: graalvm/setup-graalvm@v1
       with:
         java-version: 24
-        distribution: oracle
+        distribution: graalvm
         components: native-image
         
     - name: Cache Gradle packages
@@ -356,7 +356,7 @@ jobs:
       uses: graalvm/setup-graalvm@v1
       with:
         java-version: 24
-        distribution: oracle
+        distribution: graalvm
         components: native-image
         
     - name: Install jpackage dependencies
