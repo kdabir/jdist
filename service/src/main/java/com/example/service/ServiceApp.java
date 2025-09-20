@@ -32,10 +32,6 @@ public class ServiceApp {
         setupRoutes();
         
         System.out.println("✅ Hello World Service running on http://localhost:8080");
-        System.out.println("🌐 Opening browser automatically...");
-        
-        // Automatically open browser
-        openBrowser("http://localhost:8080");
         
         System.out.println("📋 Available endpoints:");
         System.out.println("  GET  / - Hello World UI");
@@ -81,7 +77,7 @@ public class ServiceApp {
             ctx.json(new TestResponse(
                 result.isSuccess(),
                 result.getMessage(),
-                result.getTimestamp().toString()
+                String.valueOf(result.getTimestamp())
             ));
         });
         
@@ -100,7 +96,7 @@ public class ServiceApp {
                 ctx.json(new TestResponse(
                     result.isSuccess(),
                     result.getMessage(),
-                    result.getTimestamp().toString()
+                    String.valueOf(result.getTimestamp())
                 ));
             } catch (Exception e) {
                 ctx.status(500).json(new ErrorResponse("Test execution failed: " + e.getMessage()));
@@ -177,31 +173,4 @@ public class ServiceApp {
         }
     }
     
-    /**
-     * Open the default browser with the given URL
-     */
-    private static void openBrowser(String url) {
-        try {
-            // Use system commands to open browser
-            String os = System.getProperty("os.name").toLowerCase();
-            ProcessBuilder pb;
-            
-            if (os.contains("win")) {
-                // Windows
-                pb = new ProcessBuilder("rundll32", "url.dll,FileProtocolHandler", url);
-            } else if (os.contains("mac")) {
-                // macOS
-                pb = new ProcessBuilder("open", url);
-            } else {
-                // Linux and others
-                pb = new ProcessBuilder("xdg-open", url);
-            }
-            
-            pb.start();
-            System.out.println("✅ Browser opened successfully!");
-        } catch (Exception e) {
-            System.out.println("⚠️  Could not open browser automatically: " + e.getMessage());
-            System.out.println("🌐 Please open http://localhost:8080 in your browser manually");
-        }
-    }
 }

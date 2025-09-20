@@ -96,6 +96,22 @@ task createNativeImage {
     }
 }
 
+// GraalVM Native Image configuration
+graalvmNative {
+    binaries {
+        main {
+            imageName = 'system-test-service'
+            mainClass = 'com.example.service.ServiceApp'
+            buildArgs.addAll([
+                '--no-fallback',
+                '--enable-preview',
+                '--initialize-at-build-time',
+                '--report-unsupported-elements-at-runtime'
+            ])
+        }
+    }
+}
+
 // jpackage tasks for service
 task packageServiceMac(type: Exec) {
     group = 'distribution'

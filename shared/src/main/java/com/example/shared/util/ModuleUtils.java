@@ -1,66 +1,58 @@
 package com.example.shared.util;
 
-import java.lang.module.ModuleFinder;
-import java.lang.module.ModuleReference;
+import java.lang.module.ModuleDescriptor;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Utility class for working with Java modules
+ * Utility class for module-related operations.
+ * Pure utility - no UI dependencies.
  */
 public class ModuleUtils {
     
     /**
-     * Get all available modules in the current module path
+     * Gets module dependencies for a given module
      */
-    public static Set<String> getAvailableModules() {
-        return ModuleFinder.ofSystem()
-            .findAll()
-            .stream()
-            .map(ModuleReference::descriptor)
-            .map(moduleDescriptor -> moduleDescriptor.name())
-            .collect(Collectors.toSet());
+    public static Set<String> getModuleDependencies(Module module) {
+        if (module == null) {
+            return Set.of();
+        }
+        
+        return module.getDescriptor().requires().stream()
+                .map(ModuleDescriptor.Requires::name)
+                .collect(Collectors.toSet());
     }
     
     /**
-     * Check if a specific module is available
+     * Checks if a module is available
      */
     public static boolean isModuleAvailable(String moduleName) {
-        return getAvailableModules().contains(moduleName);
+        try {
+            ModuleLayer.boot().findModule(moduleName).isPresent();
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
     
     /**
-     * Get module dependencies for a given module
+     * Gets system information
      */
-    public static Set<String> getModuleDependencies(String moduleName) {
-        return ModuleFinder.ofSystem()
-            .find(moduleName)
-            .map(ModuleReference::descriptor)
-            .map(moduleDescriptor -> moduleDescriptor.requires())
-            .orElse(Set.of())
-            .stream()
-            .map(requires -> requires.name())
-            .collect(Collectors.toSet());
-    }
-    
-    /**
-     * Generate module-info.java content based on dependencies
-     */
-    public static String generateModuleInfo(String moduleName, Set<String> exports, Set<String> requires) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("module ").append(moduleName).append(" {\n");
-        
-        // Add requires
-        requires.stream()
-            .sorted()
-            .forEach(req -> sb.append("    requires ").append(req).append(";\n"));
-        
-        // Add exports
-        exports.stream()
-            .sorted()
-            .forEach(exp -> sb.append("    exports ").append(exp).append(";\n"));
-        
-        sb.append("}");
-        return sb.toString();
+    public static String getSystemInfo() {
+        return String.format("""
+            System Information:
+            - OS: %s %s
+            - Java Version: %s
+            - Java Vendor: %s
+            - Available Processors: %d
+            - Max Memory: %d MB
+            """,
+            System.getProperty("os.name"),
+            System.getProperty("os.version"),
+            System.getProperty("java.version"),
+            System.getProperty("java.vendor"),
+            Runtime.getRuntime().availableProcessors(),
+            Runtime.getRuntime().maxMemory() / (1024 * 1024)
+        );
     }
 }

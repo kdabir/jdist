@@ -95,4 +95,20 @@ task createNativeImage {
     }
 }
 
+// GraalVM Native Image configuration
+graalvmNative {
+    binaries {
+        main {
+            imageName = 'system-test-cli'
+            mainClass = 'com.example.cli.CliApp'
+            buildArgs.addAll([
+                '--no-fallback',
+                '--enable-preview',
+                '--initialize-at-build-time',
+                '--report-unsupported-elements-at-runtime'
+            ])
+        }
+    }
+}
+
 compileJava.dependsOn generateModuleInfo

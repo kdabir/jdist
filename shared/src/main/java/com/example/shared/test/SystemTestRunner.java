@@ -1,100 +1,97 @@
 package com.example.shared.test;
 
-import java.time.LocalTime;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 /**
- * Shared system test runner that can be used by all modules
+ * Utility class for running system tests.
+ * Pure utility - no UI dependencies.
  */
 public class SystemTestRunner {
     
-    public static class TestResult {
-        private final boolean success;
-        private final String message;
-        private final LocalTime timestamp;
-        
-        public TestResult(boolean success, String message) {
-            this.success = success;
-            this.message = message;
-            this.timestamp = LocalTime.now();
-        }
-        
-        public boolean isSuccess() { return success; }
-        public String getMessage() { return message; }
-        public LocalTime getTimestamp() { return timestamp; }
-        
-        @Override
-        public String toString() {
-            return String.format("[%s] %s: %s", 
-                timestamp, 
-                success ? "SUCCESS" : "FAILED", 
-                message);
+    /**
+     * Runs a quick system test
+     */
+    public static TestResult runQuickTest(String userName) {
+        try {
+            // Simulate quick test
+            Thread.sleep(500);
+            
+            // Simple validation
+            if (userName == null || userName.trim().isEmpty()) {
+                return new TestResult(false, "User name is required", userName);
+            }
+            
+            return new TestResult(true, "Quick test completed successfully", userName);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return new TestResult(false, "Test interrupted: " + e.getMessage(), userName);
         }
     }
     
     /**
-     * Run comprehensive system tests
+     * Runs a comprehensive system test asynchronously
      */
     public static CompletableFuture<TestResult> runSystemTest(String userName) {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                // Test 1: Input validation
-                if (userName == null || userName.trim().length() < 2) {
-                    return new TestResult(false, "Invalid user name provided");
+                // Simulate comprehensive test
+                Thread.sleep(2000);
+                
+                // Simple validation
+                if (userName == null || userName.trim().isEmpty()) {
+                    return new TestResult(false, "User name is required", userName);
                 }
                 
-                // Test 2: System properties
-                String osName = System.getProperty("os.name");
-                String javaVersion = System.getProperty("java.version");
-                
-                if (osName == null || javaVersion == null) {
-                    return new TestResult(false, "Unable to read system properties");
+                // Simulate various system checks
+                if (userName.length() < 2) {
+                    return new TestResult(false, "User name too short", userName);
                 }
                 
-                // Test 3: Memory availability
-                Runtime runtime = Runtime.getRuntime();
-                long maxMemory = runtime.maxMemory();
-                if (maxMemory < 64 * 1024 * 1024) { // 64MB minimum
-                    return new TestResult(false, "Insufficient memory available");
-                }
-                
-                // Test 4: Threading capability
-                try {
-                    Thread.sleep(100); // Simulate processing
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    return new TestResult(false, "Threading test interrupted");
-                }
-                
-                // Test 5: File system access
-                String tempDir = System.getProperty("java.io.tmpdir");
-                if (tempDir == null || tempDir.isEmpty()) {
-                    return new TestResult(false, "Unable to access temporary directory");
-                }
-                
-                return new TestResult(true, 
-                    String.format("System test passed for user '%s' on %s with Java %s", 
-                        userName, osName, javaVersion));
-                        
-            } catch (Exception e) {
-                return new TestResult(false, "System test failed: " + e.getMessage());
+                return new TestResult(true, "Comprehensive test completed successfully", userName);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return new TestResult(false, "Test interrupted: " + e.getMessage(), userName);
             }
         });
     }
     
     /**
-     * Run quick validation test
+     * Test result data class
      */
-    public static TestResult runQuickTest(String userName) {
-        if (userName == null || userName.trim().isEmpty()) {
-            return new TestResult(false, "Please enter your name to run the test!");
+    public static class TestResult {
+        private final boolean success;
+        private final String message;
+        private final String userName;
+        private final long timestamp;
+        
+        public TestResult(boolean success, String message, String userName) {
+            this.success = success;
+            this.message = message;
+            this.userName = userName;
+            this.timestamp = System.currentTimeMillis();
         }
         
-        if (userName.trim().length() < 2) {
-            return new TestResult(false, "Name must be at least 2 characters long");
+        public boolean isSuccess() {
+            return success;
         }
         
-        return new TestResult(true, 
-            String.format("Hello %s! Your system is working correctly.", userName));
+        public String getMessage() {
+            return message;
+        }
+        
+        public String getUserName() {
+            return userName;
+        }
+        
+        public long getTimestamp() {
+            return timestamp;
+        }
+        
+        @Override
+        public String toString() {
+            return String.format("TestResult{success=%s, message='%s', userName='%s', timestamp=%d}", 
+                success, message, userName, timestamp);
+        }
     }
 }

@@ -1,7 +1,7 @@
 package com.example.desktop;
 
-import com.example.shared.ui.ModernUIComponents;
-import com.example.shared.ui.UIThemeManager;
+import com.example.desktop.ui.ModernUIComponents;
+import com.example.desktop.ui.UIThemeManager;
 import com.example.shared.test.SystemTestRunner;
 
 import javax.swing.*;
