@@ -1,4 +1,4 @@
-name: Build, Test, Package & Release
+name: System Test Suite - Desktop | CLI | Service | Service-Desktop → Linux | macOS | Windows
 
 on:
   push:
@@ -15,6 +15,21 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      
+    - name: Show Project Overview
+      run: |
+        echo "🚀 System Test Suite - Multi-Platform Build Matrix"
+        echo "=================================================="
+        echo ""
+        echo "📱 Desktop App → Linux (.deb) | macOS (.dmg) | Windows (.msi)"
+        echo "💻 CLI App → Linux (native) | macOS (native) | Windows (native)"
+        echo "🌐 Service App → Linux (native) | macOS (native) | Windows (native)"
+        echo "🖥️  Service-Desktop App → Linux (.deb) | macOS (.dmg) | Windows (.msi)"
+        echo ""
+        echo "🔧 Build Tools: Java 24 + GraalVM 24 + jpackage"
+        echo "📦 Distribution: Native installers + Native executables"
+        echo ""
+      shell: bash
       
     - name: Set up JDK 24
       uses: actions/setup-java@v4
@@ -190,6 +205,20 @@ jobs:
     - name: Make gradlew executable
       run: chmod +x ./gradlew
       
+    - name: Show Project Matrix
+      run: |
+        echo "🏗️  Building System Test Suite for macOS:"
+        echo "   📱 Desktop App → macOS (.dmg)"
+        echo "   💻 CLI App → macOS (native executable)"
+        echo "   🌐 Service App → macOS (native executable)"
+        echo "   🖥️  Service-Desktop App → macOS (.dmg)"
+        echo ""
+        echo "📦 Artifacts will be generated in:"
+        echo "   - build/jpackage/ (Desktop & Service-Desktop)"
+        echo "   - cli/build/jpackage/ (CLI native)"
+        echo "   - service/build/jpackage/ (Service native)"
+      shell: bash
+      
     - name: Build all modules
       run: ./gradlew build
       shell: bash
@@ -289,6 +318,20 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-graalvm-
           
+    - name: Show Project Matrix
+      run: |
+        echo "🏗️  Building System Test Suite for Windows:"
+        echo "   📱 Desktop App → Windows (.msi)"
+        echo "   💻 CLI App → Windows (native executable)"
+        echo "   🌐 Service App → Windows (native executable)"
+        echo "   🖥️  Service-Desktop App → Windows (.msi)"
+        echo ""
+        echo "📦 Artifacts will be generated in:"
+        echo "   - build/jpackage/ (Desktop & Service-Desktop)"
+        echo "   - cli/build/jpackage/ (CLI native)"
+        echo "   - service/build/jpackage/ (Service native)"
+      shell: powershell
+      
     - name: Build all modules
       run: .\gradlew.bat build
       shell: cmd
@@ -395,6 +438,20 @@ jobs:
           
     - name: Make gradlew executable
       run: chmod +x ./gradlew
+      
+    - name: Show Project Matrix
+      run: |
+        echo "🏗️  Building System Test Suite for Linux:"
+        echo "   📱 Desktop App → Linux (.deb)"
+        echo "   💻 CLI App → Linux (native executable)"
+        echo "   🌐 Service App → Linux (native executable)"
+        echo "   🖥️  Service-Desktop App → Linux (.deb)"
+        echo ""
+        echo "📦 Artifacts will be generated in:"
+        echo "   - build/jpackage/ (Desktop & Service-Desktop)"
+        echo "   - cli/build/jpackage/ (CLI native)"
+        echo "   - service/build/jpackage/ (Service native)"
+      shell: bash
       
     - name: Build all modules
       run: ./gradlew build
