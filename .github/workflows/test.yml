@@ -49,9 +49,28 @@ jobs:
         path: |
           ~/.gradle/caches
           ~/.gradle/wrapper
+          ~/.gradle/daemon
         key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
         restore-keys: |
           ${{ runner.os }}-gradle-
+          
+    - name: Cache Maven dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-m2-
+          
+    - name: Cache GraalVM
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.graalvm
+          ~/.gradle/caches/modules-2/files-2.1/org.graalvm.nativeimage
+        key: ${{ runner.os }}-graalvm-24
+        restore-keys: |
+          ${{ runner.os }}-graalvm-
           
     - name: Make gradlew executable
       run: chmod +x ./gradlew
