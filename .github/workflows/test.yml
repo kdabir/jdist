@@ -10,17 +10,35 @@ jobs:
     strategy:
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
-        java-version: [21]
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Set up JDK ${{ matrix.java-version }}
+    - name: Set up JDK 24
       uses: actions/setup-java@v4
       with:
-        java-version: ${{ matrix.java-version }}
+        java-version: 24
         distribution: 'temurin'
+        
+    - name: Verify Java version
+      run: |
+        java -version
+        JAVA_VERSION=$(java -version 2>&1 | head -n 1 | cut -d'"' -f2 | cut -d'.' -f1)
+        if [ "$JAVA_VERSION" -lt 24 ]; then
+          echo "⚠️  WARNING: Using Java $JAVA_VERSION. This project requires Java 24+ for optimal performance."
+          echo "⚠️  Some features may not work correctly with older Java versions."
+        else
+          echo "✅ Using Java $JAVA_VERSION (latest stable)"
+        fi
+      shell: bash
+      
+    - name: Set up GraalVM
+      uses: graalvm/setup-graalvm@v1
+      with:
+        java-version: 24
+        distribution: graalvm
+        components: native-image
         
     - name: Cache Gradle packages
       uses: actions/cache@v4

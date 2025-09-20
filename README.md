@@ -318,7 +318,8 @@ The application performs comprehensive system validation:
 #### 1. **Test Workflow** (`.github/workflows/test.yml`)
 - **Triggers**: Pull requests, pushes to any branch
 - **Platforms**: macOS, Windows, Ubuntu
-- **Java Version**: 21
+- **Java Version**: 24 (latest stable)
+- **GraalVM**: Included for native image compilation
 - **Actions**:
   - Run tests
   - Build all modules
@@ -331,7 +332,8 @@ The application performs comprehensive system validation:
 #### 2. **Build and Release Workflow** (`.github/workflows/build-and-release.yml`)
 - **Triggers**: Pushes to any branch, releases
 - **Platforms**: macOS, Windows, Ubuntu
-- **Java Version**: 21
+- **Java Version**: 24 (latest stable)
+- **GraalVM**: Included for native image compilation
 - **Actions**:
   - Build all modules
   - Generate module dependencies
@@ -345,21 +347,19 @@ The application performs comprehensive system validation:
 #### 3. **Release Workflow** (`.github/workflows/release.yml`)
 - **Triggers**: Manual workflow dispatch, pushes to main branch
 - **Platform**: Ubuntu
-- **Java Version**: 21
+- **Java Version**: 24 (latest stable)
+- **GraalVM**: Included for native image compilation
 - **Actions**:
   - Build and package all targets
   - Create release assets
   - Generate installation guide
   - Create GitHub release with artifacts
 
-#### 4. **Java Version Matrix** (`.github/workflows/java-matrix.yml`)
-- **Triggers**: Pull requests, pushes to any branch
-- **Platform**: Ubuntu
-- **Java Versions**: 17, 21, 24
-- **Actions**:
-  - Test compatibility across Java versions
-  - Test native compilation (Java 21+ only)
-  - Upload test results
+#### 4. **Java Version Warnings**
+- **Build System**: Automatically warns if Java < 24 is detected
+- **CI/CD**: All workflows use Java 24 (latest stable)
+- **GraalVM**: Native image compilation requires Java 24+
+- **Features**: Preview features and latest Java capabilities enabled
 
 ### Artifacts and Releases
 

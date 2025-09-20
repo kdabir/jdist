@@ -29,6 +29,28 @@ subprojects {
         modularity.inferModulePath = true
     }
     
+    // Add warning for older Java versions
+    tasks.register('checkJavaVersion') {
+        group = 'verification'
+        description = 'Check if Java version is 24 or higher'
+        
+        doLast {
+            def javaVersion = System.getProperty('java.version')
+            def majorVersion = javaVersion.split('\\.')[0] as Integer
+            
+            if (majorVersion < 24) {
+                println "⚠️  WARNING: Using Java $javaVersion. This project requires Java 24+ for optimal performance."
+                println "⚠️  Some features may not work correctly with older Java versions."
+                println "⚠️  Please upgrade to Java 24 or higher for the best experience."
+            } else {
+                println "✅ Using Java $javaVersion (latest stable)"
+            }
+        }
+    }
+    
+    // Run Java version check before compilation
+    compileJava.dependsOn checkJavaVersion
+    
     // Enable preview features for latest Java features
     compileJava {
         options.compilerArgs += ['--enable-preview']
