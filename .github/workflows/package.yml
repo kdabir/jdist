@@ -1,0 +1,252 @@
+name: Package All Platforms
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  package-macos:
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 24
+      uses: actions/setup-java@v4
+      with:
+        java-version: 24
+        distribution: 'temurin'
+        
+    - name: Verify Java version
+      run: |
+        java -version
+        JAVA_VERSION=$(java -version 2>&1 | head -n 1 | cut -d'"' -f2 | cut -d'.' -f1)
+        if [ "$JAVA_VERSION" -lt 24 ]; then
+          echo "⚠️  WARNING: Using Java $JAVA_VERSION. This project requires Java 24+ for optimal performance."
+          echo "⚠️  Some features may not work correctly with older Java versions."
+        else
+          echo "✅ Using Java $JAVA_VERSION (latest stable)"
+        fi
+      shell: bash
+      
+    - name: Set up GraalVM
+      uses: graalvm/setup-graalvm@v1
+      with:
+        java-version: 24
+        distribution: oracle
+        components: native-image
+        
+    - name: Cache Gradle packages
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+          
+    - name: Make gradlew executable
+      run: chmod +x ./gradlew
+      
+    - name: Build all modules
+      run: ./gradlew build
+      shell: bash
+      
+    - name: Generate module dependencies
+      run: ./gradlew detectModuleDependencies
+      shell: bash
+      
+    - name: Build native images (CLI and Service)
+      run: ./gradlew :cli:nativeCompile :service:nativeCompile
+      shell: bash
+      continue-on-error: true
+      
+    - name: Create jlink images
+      run: ./gradlew createAllJlinkImages
+      shell: bash
+      
+    - name: Package macOS applications
+      run: |
+        echo "🍎 Packaging macOS applications..."
+        ./gradlew packageMac --stacktrace --info
+      shell: bash
+      continue-on-error: true
+      
+    - name: Upload macOS artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: macos-artifacts
+        path: |
+          build/jpackage/
+          cli/build/jpackage/
+          service/build/jpackage/
+          desktop/build/jpackage/
+          service-desktop/build/jpackage/
+        retention-days: 30
+
+  package-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 24
+      uses: actions/setup-java@v4
+      with:
+        java-version: 24
+        distribution: 'temurin'
+        
+    - name: Verify Java version
+      run: |
+        java -version
+        $JAVA_VERSION = (java -version 2>&1 | Select-String -Pattern 'version "(\d+)' | ForEach-Object { $_.Matches[0].Groups[1].Value })
+        if ([int]$JAVA_VERSION -lt 24) {
+          Write-Host "⚠️  WARNING: Using Java $JAVA_VERSION. This project requires Java 24+ for optimal performance."
+          Write-Host "⚠️  Some features may not work correctly with older Java versions."
+        } else {
+          Write-Host "✅ Using Java $JAVA_VERSION (latest stable)"
+        }
+      shell: powershell
+      
+    - name: Set up GraalVM
+      uses: graalvm/setup-graalvm@v1
+      with:
+        java-version: 24
+        distribution: oracle
+        components: native-image
+        
+    - name: Cache Gradle packages
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+          
+    - name: Build all modules
+      run: .\gradlew.bat build
+      shell: cmd
+      
+    - name: Generate module dependencies
+      run: .\gradlew.bat detectModuleDependencies
+      shell: cmd
+      
+    - name: Build native images (CLI and Service)
+      run: .\gradlew.bat :cli:nativeCompile :service:nativeCompile
+      shell: cmd
+      continue-on-error: true
+      
+    - name: Create jlink images
+      run: .\gradlew.bat createAllJlinkImages
+      shell: cmd
+      
+    - name: Package Windows applications
+      run: |
+        echo "🪟 Packaging Windows applications..."
+        .\gradlew.bat packageWindows --stacktrace --info
+      shell: cmd
+      continue-on-error: true
+      
+    - name: Upload Windows artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-artifacts
+        path: |
+          build/jpackage/
+          cli/build/jpackage/
+          service/build/jpackage/
+          desktop/build/jpackage/
+          service-desktop/build/jpackage/
+        retention-days: 30
+
+  package-linux:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 24
+      uses: actions/setup-java@v4
+      with:
+        java-version: 24
+        distribution: 'temurin'
+        
+    - name: Verify Java version
+      run: |
+        java -version
+        JAVA_VERSION=$(java -version 2>&1 | head -n 1 | cut -d'"' -f2 | cut -d'.' -f1)
+        if [ "$JAVA_VERSION" -lt 24 ]; then
+          echo "⚠️  WARNING: Using Java $JAVA_VERSION. This project requires Java 24+ for optimal performance."
+          echo "⚠️  Some features may not work correctly with older Java versions."
+        else
+          echo "✅ Using Java $JAVA_VERSION (latest stable)"
+        fi
+      shell: bash
+      
+    - name: Set up GraalVM
+      uses: graalvm/setup-graalvm@v1
+      with:
+        java-version: 24
+        distribution: oracle
+        components: native-image
+        
+    - name: Install jpackage dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y fakeroot dpkg-dev
+        
+    - name: Cache Gradle packages
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+          
+    - name: Make gradlew executable
+      run: chmod +x ./gradlew
+      
+    - name: Build all modules
+      run: ./gradlew build
+      shell: bash
+      
+    - name: Generate module dependencies
+      run: ./gradlew detectModuleDependencies
+      shell: bash
+      
+    - name: Build native images (CLI and Service)
+      run: ./gradlew :cli:nativeCompile :service:nativeCompile
+      shell: bash
+      continue-on-error: true
+      
+    - name: Create jlink images
+      run: ./gradlew createAllJlinkImages
+      shell: bash
+      
+    - name: Package Linux applications
+      run: |
+        echo "🐧 Packaging Linux applications..."
+        ./gradlew packageLinux --stacktrace --info
+      shell: bash
+      continue-on-error: true
+      
+    - name: Upload Linux artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: linux-artifacts
+        path: |
+          build/jpackage/
+          cli/build/jpackage/
+          service/build/jpackage/
+          desktop/build/jpackage/
+          service-desktop/build/jpackage/
+        retention-days: 30

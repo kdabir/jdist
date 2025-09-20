@@ -1,13 +1,11 @@
-name: Build and Release
+name: Build and Test
 
 on:
   push:
   pull_request:
-  release:
-    types: [ published ]
 
 jobs:
-  build-and-package:
+  build-and-test:
     runs-on: ubuntu-latest
     
     steps:
@@ -36,7 +34,7 @@ jobs:
       uses: graalvm/setup-graalvm@v1
       with:
         java-version: 24
-        distribution: graalvm
+        distribution: oracle
         components: native-image
         
     - name: Install jpackage dependencies
@@ -75,9 +73,9 @@ jobs:
       run: ./gradlew createAllJlinkImages
       shell: bash
       
-    - name: Package applications (Linux)
+    - name: Test packaging (Linux)
       run: |
-        echo "🐧 Packaging Linux applications..."
+        echo "🐧 Testing Linux packaging..."
         ./gradlew packageLinux --stacktrace --info
       shell: bash
       continue-on-error: true

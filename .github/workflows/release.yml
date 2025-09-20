@@ -2,17 +2,10 @@ name: Create Release
 
 on:
   workflow_dispatch:
-    inputs:
-      version:
-        description: 'Release version (e.g., v1.0.0)'
-        required: true
-        default: 'v1.0.0'
-      prerelease:
-        description: 'Is this a prerelease?'
-        type: boolean
-        default: false
   push:
     branches: [ main ]
+  release:
+    types: [ published ]
 
 jobs:
   create-release:
@@ -22,186 +15,46 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Set up JDK 24
-      uses: actions/setup-java@v4
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
       with:
-        java-version: 24
-        distribution: 'temurin'
+        path: ./artifacts
         
-    - name: Verify Java version
-      run: |
-        java -version
-        JAVA_VERSION=$(java -version 2>&1 | head -n 1 | cut -d'"' -f2 | cut -d'.' -f1)
-        if [ "$JAVA_VERSION" -lt 24 ]; then
-          echo "⚠️  WARNING: Using Java $JAVA_VERSION. This project requires Java 24+ for optimal performance."
-          echo "⚠️  Some features may not work correctly with older Java versions."
-        else
-          echo "✅ Using Java $JAVA_VERSION (latest stable)"
-        fi
-        
-    - name: Set up GraalVM
-      uses: graalvm/setup-graalvm@v1
-      with:
-        java-version: 24
-        distribution: graalvm
-        components: native-image
-        
-    - name: Install jpackage dependencies (Linux)
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y fakeroot dpkg-dev
-        
-    - name: Cache Gradle packages
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.gradle/caches
-          ~/.gradle/wrapper
-        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-        restore-keys: |
-          ${{ runner.os }}-gradle-
-          
-    - name: Build and package all targets
-      run: |
-        chmod +x ./gradlew
-        ./gradlew build
-        ./gradlew detectModuleDependencies
-        ./gradlew :cli:nativeCompile :service:nativeCompile
-        ./gradlew createAllJlinkImages
-        ./gradlew packageLinux
-        ./gradlew distributionReport moduleAnalysisReport
-        
-    - name: Create release assets
-      run: |
-        mkdir -p release-assets
-        
-        # Copy all built artifacts
-        cp -r cli/build/jpackage/* release-assets/ 2>/dev/null || true
-        cp -r desktop/build/jpackage/* release-assets/ 2>/dev/null || true
-        cp -r service/build/jpackage/* release-assets/ 2>/dev/null || true
-        cp -r service-desktop/build/jpackage/* release-assets/ 2>/dev/null || true
-        
-        # Copy native executables
-        cp cli/build/native/nativeCompile/system-test-cli release-assets/ 2>/dev/null || true
-        cp service/build/native/nativeCompile/system-test-service release-assets/ 2>/dev/null || true
-        
-        # Copy reports
-        cp build/distribution-report.md release-assets/ 2>/dev/null || true
-        cp build/module-analysis-report.md release-assets/ 2>/dev/null || true
-        
-        # Create installation guide
-        cat > release-assets/INSTALL.md << 'EOF'
-        # System Test Suite - Installation Guide
-        
-        ## Quick Start
-        
-        1. **Download** the appropriate installer for your platform
-        2. **Install** using the platform-specific method below
-        3. **Run** the application
-        
-        ## Platform-Specific Installation
-        
-        ### macOS
-        - **Native App**: Double-click the `.app` file
-        - **Installer**: Run the `.dmg` file and drag to Applications
-        - **Native Executable**: Run `./system-test-cli` or `./system-test-service`
-        
-        ### Windows
-        - **Installer**: Run the `.msi` file
-        - **Portable**: Run the `.exe` file directly
-        - **Native Executable**: Run `system-test-cli.exe` or `system-test-service.exe`
-        
-        ### Linux
-        - **Package**: Install the `.deb` file with `sudo dpkg -i *.deb`
-        - **Native Executable**: Run `./system-test-cli` or `./system-test-service`
-        
-        ## Applications
-        
-        - **CLI**: Command-line interface for system testing
-        - **Desktop**: GUI application with modern UI
-        - **Service**: Web service accessible at http://localhost:8080
-        - **Service-Desktop**: Web service with automatic browser opening
-        
-        ## Native Executables
-        
-        The following native executables are available for faster startup:
-        - `system-test-cli` (16MB) - CLI application
-        - `system-test-service` (29MB) - Web service
-        
-        These don't require Java to be installed on the target system.
-        
-        ## Reports
-        
-        - `distribution-report.md`: Comprehensive distribution information
-        - `module-analysis-report.md`: Module dependency analysis
-        
-        EOF
-        
-        # Create platform-specific archives
-        tar -czf "system-test-suite-${{ github.event.inputs.version || 'latest' }}.tar.gz" -C release-assets .
-        
-        # List created assets
-        ls -la release-assets/
-        ls -la *.tar.gz
-        
-    - name: Create Release
+    - name: Create release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ github.event.inputs.version || 'v1.0.0' }}
-        name: System Test Suite ${{ github.event.inputs.version || 'v1.0.0' }}
-        body: |
-          # System Test Suite ${{ github.event.inputs.version || 'v1.0.0' }}
-          
-          ## 🚀 What's New
-          
-          - Cross-platform native installers for all major operating systems
-          - Native executables for CLI and Service applications (GraalVM)
-          - Custom JVM images for reduced distribution size
-          - Java Module System (JPMS) support with automatic dependency detection
-          - Modern UI with dark mode support
-          - Web service with HTML interface
-          
-          ## 📦 Downloads
-          
-          ### Complete Package
-          - **All Platforms**: `system-test-suite-${{ github.event.inputs.version || 'latest' }}.tar.gz`
-          
-          ### Individual Applications
-          - **CLI**: Command-line interface with native executable
-          - **Desktop**: Modern Swing GUI application
-          - **Service**: Web service with HTML interface
-          - **Service-Desktop**: Web service with automatic browser opening
-          
-          ## 🛠️ Installation
-          
-          1. Download the appropriate package for your platform
-          2. Extract the archive
-          3. Follow the instructions in `INSTALL.md`
-          
-          ## ✨ Features
-          
-          - ✅ **Cross-Platform**: macOS, Windows, Linux support
-          - ✅ **Native Executables**: Fast startup, no JVM required
-          - ✅ **Modern UI**: Dark mode, responsive design
-          - ✅ **Web Interface**: HTML-based service interface
-          - ✅ **Module System**: Java 9+ module support
-          - ✅ **Auto-Detection**: Automatic module dependency detection
-          - ✅ **Multiple Formats**: DMG, MSI, DEB, native executables
-          
-          ## 📊 Reports
-          
-          - `distribution-report.md`: Comprehensive distribution information
-          - `module-analysis-report.md`: Module dependency analysis
-          
-          ## 🔧 System Requirements
-          
-          - **Java**: 21+ (for JVM-based distributions)
-          - **OS**: macOS 10.15+, Windows 10+, Ubuntu 18.04+
-          - **Memory**: 512MB RAM minimum
-          - **Disk**: 100MB free space
-          
+        tag_name: v1.0.0
+        name: Release v1.0.0
+        draft: false
+        prerelease: false
         files: |
-          system-test-suite-${{ github.event.inputs.version || 'latest' }}.tar.gz
-        prerelease: ${{ github.event.inputs.prerelease == 'true' }}
+          artifacts/macos-artifacts/*
+          artifacts/windows-artifacts/*
+          artifacts/linux-artifacts/*
+        body: |
+          ## System Test Suite Release
+          
+          This release contains native applications for all platforms:
+          
+          ### 📦 Downloads
+          - **macOS**: `.dmg` installer with native app
+          - **Windows**: `.msi` installer with native app  
+          - **Linux**: `.deb` package with native app
+          
+          ### 🚀 Features
+          - CLI application with native executable
+          - Desktop GUI application with native installer
+          - Web service with native executable
+          - Service-desktop app with browser integration
+          
+          ### 📋 Installation
+          1. Download the appropriate package for your platform
+          2. Install using the standard installer
+          3. Run the application from your applications menu
+          
+          ### 🔧 Development
+          - Built with Java 24 and Oracle GraalVM 24
+          - Native images for optimal performance
+          - Cross-platform compatibility
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

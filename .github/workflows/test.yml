@@ -1,8 +1,9 @@
-name: Test
+name: Test and Build
 
 on:
   pull_request:
   push:
+  workflow_dispatch:
 
 jobs:
   test:
@@ -34,11 +35,10 @@ jobs:
       uses: graalvm/setup-graalvm@v1
       with:
         java-version: 24
-        distribution: graalvm
+        distribution: oracle
         components: native-image
         
-    - name: Install jpackage dependencies (Linux)
-      if: matrix.os == 'ubuntu-latest'
+    - name: Install jpackage dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y fakeroot dpkg-dev
