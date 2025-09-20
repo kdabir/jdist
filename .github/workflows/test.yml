@@ -1,0 +1,76 @@
+name: Test
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+        java-version: [21]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK ${{ matrix.java-version }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ matrix.java-version }}
+        distribution: 'temurin'
+        
+    - name: Cache Gradle packages
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+          
+    - name: Make gradlew executable
+      if: matrix.os != 'windows-latest'
+      run: chmod +x ./gradlew
+      
+    - name: Run tests
+      run: ./gradlew test
+      shell: bash
+      
+    - name: Build all modules
+      run: ./gradlew build
+      shell: bash
+      
+    - name: Test CLI application
+      run: ./gradlew :cli:run
+      shell: bash
+      
+    - name: Test module dependency detection
+      run: ./gradlew detectModuleDependencies
+      shell: bash
+      
+    - name: Test native image compilation (CLI and Service)
+      run: ./gradlew :cli:nativeCompile :service:nativeCompile
+      shell: bash
+      continue-on-error: true
+      
+    - name: Test jlink image creation
+      run: ./gradlew createAllJlinkImages
+      shell: bash
+      
+    - name: Generate reports
+      run: ./gradlew distributionReport moduleAnalysisReport
+      shell: bash
+      
+    - name: Upload test artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-artifacts-${{ matrix.os }}
+        path: |
+          build/reports/
+          build/distribution-report.md
+          build/module-analysis-report.md
+        retention-days: 7

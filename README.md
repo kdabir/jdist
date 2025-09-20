@@ -311,6 +311,76 @@ The application performs comprehensive system validation:
    ./gradlew packageAll
    ```
 
+## 🔄 CI/CD Pipeline
+
+### GitHub Actions Workflows
+
+#### 1. **Test Workflow** (`.github/workflows/test.yml`)
+- **Triggers**: Pull requests, pushes to any branch
+- **Platforms**: macOS, Windows, Ubuntu
+- **Java Version**: 21
+- **Actions**:
+  - Run tests
+  - Build all modules
+  - Test CLI application
+  - Test module dependency detection
+  - Test native image compilation
+  - Test jlink image creation
+  - Generate reports
+
+#### 2. **Build and Release Workflow** (`.github/workflows/build-and-release.yml`)
+- **Triggers**: Pushes to any branch, releases
+- **Platforms**: macOS, Windows, Ubuntu
+- **Java Version**: 21
+- **Actions**:
+  - Build all modules
+  - Generate module dependencies
+  - Build native images (CLI and Service)
+  - Create jlink images
+  - Package all applications
+  - Generate comprehensive reports
+  - Upload artifacts for each platform
+  - Create release assets on release
+
+#### 3. **Release Workflow** (`.github/workflows/release.yml`)
+- **Triggers**: Manual workflow dispatch, pushes to main branch
+- **Platform**: Ubuntu
+- **Java Version**: 21
+- **Actions**:
+  - Build and package all targets
+  - Create release assets
+  - Generate installation guide
+  - Create GitHub release with artifacts
+
+#### 4. **Java Version Matrix** (`.github/workflows/java-matrix.yml`)
+- **Triggers**: Pull requests, pushes to any branch
+- **Platform**: Ubuntu
+- **Java Versions**: 17, 21, 24
+- **Actions**:
+  - Test compatibility across Java versions
+  - Test native compilation (Java 21+ only)
+  - Upload test results
+
+### Artifacts and Releases
+
+#### **Artifacts Uploaded**
+- **CLI Artifacts**: Native executables, installers, jlink images
+- **Desktop Artifacts**: Platform-specific installers, jlink images
+- **Service Artifacts**: Native executables, installers, jlink images
+- **Service-Desktop Artifacts**: Platform-specific installers, jlink images
+- **Reports**: Distribution and module analysis reports
+
+#### **Release Assets**
+- **Platform-Specific Bundles**: macOS, Windows, Linux
+- **Cross-Platform Bundle**: Documentation and reports
+- **Native Executables**: CLI and Service applications
+- **Installation Guide**: Platform-specific instructions
+
+#### **Download Locations**
+- **Pull Requests**: Artifacts available in Actions tab
+- **Releases**: Assets attached to GitHub releases
+- **Manual Release**: Use "Actions" → "Create Release" workflow
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
