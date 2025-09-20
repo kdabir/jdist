@@ -1,1 +1,6 @@
-rootProject.name = 'hello-world-swing'
+rootProject.name = 'system-test-suite'
+
+include 'shared'
+include 'cli'
+include 'desktop'
+include 'service'

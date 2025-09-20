@@ -2,23 +2,54 @@ plugins {
     id 'java'
     id 'application'
     id 'jvm-test-suite'
+    id 'org.graalvm.buildtools.native' version '0.9.28'
 }
 
 group = 'com.example'
 version = '1.0.0'
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_24
-    targetCompatibility = JavaVersion.VERSION_24
-}
-
-// Enable preview features for latest Java features
-compileJava {
-    options.compilerArgs += ['--enable-preview']
-}
-
-run {
-    jvmArgs += ['--enable-preview']
+// Configure all subprojects
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'org.graalvm.buildtools.native'
+    
+    group = 'com.example'
+    version = '1.0.0'
+    
+    java {
+        sourceCompatibility = JavaVersion.VERSION_24
+        targetCompatibility = JavaVersion.VERSION_24
+        modularity.inferModulePath = true
+    }
+    
+    // Enable preview features for latest Java features
+    compileJava {
+        options.compilerArgs += ['--enable-preview']
+    }
+    
+    test {
+        jvmArgs += ['--enable-preview']
+    }
+    
+    repositories {
+        mavenCentral()
+    }
+    
+    // GraalVM native image configuration
+    graalvmNative {
+        binaries {
+            main {
+                imageName = project.name
+                mainClass = project.hasProperty('mainClass') ? project.mainClass : 'com.example.${project.name}.Main'
+                buildArgs.addAll([
+                    '--no-fallback',
+                    '--enable-preview',
+                    '--initialize-at-build-time=com.example',
+                    '--report-unsupported-elements-at-runtime'
+                ])
+            }
+        }
+    }
 }
 
 repositories {
@@ -26,7 +57,7 @@ repositories {
 }
 
 dependencies {
-    // No external dependencies needed for basic Swing app
+    // Root project dependencies
 }
 
 application {
@@ -170,9 +201,167 @@ tasks.register('createDistZip', Zip) {
     destinationDirectory = file('build/distributions')
 }
 
-// Create all packages
+// Comprehensive distribution tasks
+tasks.register('buildAll') {
+    group = 'build'
+    description = 'Build all modules'
+    dependsOn ':shared:build', ':cli:build', ':desktop:build', ':service:build'
+}
+
+tasks.register('createAllNativeImages') {
+    group = 'distribution'
+    description = 'Create native images for all modules'
+    dependsOn ':cli:createNativeImage', ':desktop:createNativeImage', ':service:createNativeImage'
+}
+
+tasks.register('createAllJlinkImages') {
+    group = 'distribution'
+    description = 'Create jlink images for all modules'
+    dependsOn ':cli:createJlinkImage', ':desktop:createJlinkImage', ':service:createJlinkImage'
+}
+
 tasks.register('packageAll') {
     group = 'distribution'
-    description = 'Create packages for all platforms'
+    description = 'Create packages for all platforms and modules'
     dependsOn 'packageMac', 'packageWindows', 'packageLinux', 'createDistZip'
+}
+
+// Module-specific packaging tasks
+tasks.register('packageCli') {
+    group = 'distribution'
+    description = 'Package CLI module for all platforms'
+    dependsOn ':cli:createNativeImage', ':cli:createJlinkImage'
+}
+
+tasks.register('packageDesktop') {
+    group = 'distribution'
+    description = 'Package Desktop module for all platforms'
+    dependsOn ':desktop:packageDesktopMac', ':desktop:packageDesktopWindows', ':desktop:packageDesktopLinux'
+}
+
+tasks.register('packageService') {
+    group = 'distribution'
+    description = 'Package Service module for all platforms'
+    dependsOn ':service:packageServiceMac', ':service:packageServiceWindows', ':service:packageServiceLinux', ':service:createNativeImage', ':service:createJlinkImage'
+}
+
+// Auto-detect module dependencies task
+tasks.register('detectModuleDependencies') {
+    group = 'build'
+    description = 'Detect and update module dependencies automatically'
+    
+    doLast {
+        subprojects.each { project ->
+            if (project.plugins.hasPlugin('java')) {
+                println "Analyzing dependencies for ${project.name}..."
+                
+                def dependencies = project.configurations.implementation.dependencies
+                def requires = dependencies.collect { dep ->
+                    if (dep instanceof ProjectDependency) {
+                        return "com.example.${dep.dependencyProject.name}"
+                    } else if (dep.group && dep.name) {
+                        return "${dep.group}.${dep.name}".replace('-', '.')
+                    }
+                    return null
+                }.findAll { it != null }
+                
+                println "  Dependencies: ${requires.join(', ')}"
+                
+                // Update module-info.java if needed
+                def moduleInfoFile = project.file('src/main/java/module-info.java')
+                if (moduleInfoFile.exists()) {
+                    println "  Module-info.java exists for ${project.name}"
+                } else {
+                    println "  No module-info.java found for ${project.name}"
+                }
+            }
+        }
+    }
+}
+
+// Custom task to generate distribution report
+tasks.register('distributionReport') {
+    group = 'distribution'
+    description = 'Generate comprehensive distribution report'
+    
+    doLast {
+        def reportFile = file("$buildDir/distribution-report.md")
+        reportFile.parentFile.mkdirs()
+        
+        def report = """# System Test Suite - Distribution Report
+
+## Modules
+- **shared**: Common utilities and UI components
+- **cli**: Command-line interface
+- **desktop**: Desktop GUI application  
+- **service**: Web service API
+
+## Distribution Formats
+
+### Native Images (GraalVM)
+- Ultra-fast startup times
+- No JVM required
+- Platform-specific binaries
+- Smaller memory footprint
+
+### JLink Images
+- Custom JVM with only required modules
+- Reduced size compared to full JDK
+- Platform-specific
+
+### jpackage Installers
+- Native installers (.dmg, .msi, .deb)
+- Embedded JVM
+- System integration
+
+### Fat JARs
+- Single executable JAR
+- Requires Java installation
+- Cross-platform
+
+## Build Commands
+
+```bash
+# Build all modules
+./gradlew buildAll
+
+# Create native images
+./gradlew createAllNativeImages
+
+# Create jlink images  
+./gradlew createAllJlinkImages
+
+# Package everything
+./gradlew packageAll
+
+# Module-specific packaging
+./gradlew packageCli
+./gradlew packageDesktop
+./gradlew packageService
+```
+
+## Generated Artifacts
+
+### CLI Module
+- `system-test-cli` (native image)
+- `cli/build/jlink/` (jlink image)
+- Fat JAR with dependencies
+
+### Desktop Module  
+- `System Test Desktop-1.0.0.dmg` (macOS)
+- `System Test Desktop-1.0.0.msi` (Windows)
+- `system-test-desktop` (native image)
+- `desktop/build/jlink/` (jlink image)
+
+### Service Module
+- `system-test-service` (native image)
+- `service/build/jlink/` (jlink image)
+- Fat JAR with dependencies
+
+Generated on: ${new Date()}
+"""
+        
+        reportFile.text = report
+        println "Distribution report generated: ${reportFile}"
+    }
 }

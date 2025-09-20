@@ -1,0 +1,158 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'org.graalvm.buildtools.native'
+}
+
+application {
+    mainClass = 'com.example.desktop.DesktopApp'
+}
+
+dependencies {
+    implementation project(':shared')
+    
+    // Desktop dependencies
+    implementation 'com.formdev:flatlaf:3.4.1'
+    implementation 'com.formdev:flatlaf-intellij-themes:3.4.1'
+}
+
+// Custom task to generate module-info.java
+task generateModuleInfo {
+    group = 'build'
+    description = 'Generate module-info.java for Desktop module'
+    
+    doLast {
+        def moduleName = 'com.example.desktop'
+        def moduleInfo = """module ${moduleName} {
+    requires com.example.shared;
+    requires java.desktop;
+    requires java.logging;
+    
+    exports com.example.desktop;
+}"""
+        
+        def moduleInfoFile = file('src/main/java/module-info.java')
+        moduleInfoFile.text = moduleInfo
+        println "Generated module-info.java for ${moduleName}"
+    }
+}
+
+// jpackage tasks for desktop
+task packageDesktopMac(type: Exec) {
+    group = 'distribution'
+    description = 'Create macOS .dmg for desktop app'
+    dependsOn 'jar'
+    
+    commandLine 'jpackage',
+        '--input', 'build/libs',
+        '--main-jar', "${project.name}-${project.version}.jar",
+        '--main-class', 'com.example.desktop.DesktopApp',
+        '--name', 'System Test Desktop',
+        '--app-version', project.version,
+        '--vendor', 'Example Corp',
+        '--description', 'System Test Desktop Application',
+        '--type', 'dmg',
+        '--dest', 'build/distributions',
+        '--java-options', '--enable-preview',
+        '--java-options', '-Dapple.laf.useScreenMenuBar=true',
+        '--java-options', '-Dcom.apple.macos.useScreenMenuBar=true',
+        '--java-options', '-Dcom.apple.mrj.application.apple.menu.about.name=System Test Desktop'
+}
+
+task packageDesktopWindows(type: Exec) {
+    group = 'distribution'
+    description = 'Create Windows .msi for desktop app'
+    dependsOn 'jar'
+    
+    commandLine 'jpackage',
+        '--input', 'build/libs',
+        '--main-jar', "${project.name}-${project.version}.jar",
+        '--main-class', 'com.example.desktop.DesktopApp',
+        '--name', 'System Test Desktop',
+        '--app-version', project.version,
+        '--vendor', 'Example Corp',
+        '--description', 'System Test Desktop Application',
+        '--type', 'msi',
+        '--dest', 'build/distributions',
+        '--java-options', '--enable-preview',
+        '--win-console',
+        '--win-dir-chooser',
+        '--win-menu',
+        '--win-shortcut'
+}
+
+task packageDesktopLinux(type: Exec) {
+    group = 'distribution'
+    description = 'Create Linux .deb for desktop app'
+    dependsOn 'jar'
+    
+    commandLine 'jpackage',
+        '--input', 'build/libs',
+        '--main-jar', "${project.name}-${project.version}.jar",
+        '--main-class', 'com.example.desktop.DesktopApp',
+        '--name', 'System Test Desktop',
+        '--app-version', project.version,
+        '--vendor', 'Example Corp',
+        '--description', 'System Test Desktop Application',
+        '--type', 'deb',
+        '--dest', 'build/distributions',
+        '--java-options', '--enable-preview',
+        '--linux-menu-group', 'Development',
+        '--linux-shortcut'
+}
+
+// Custom task for jlink
+task createJlinkImage(type: Exec) {
+    group = 'distribution'
+    description = 'Create custom JVM image for desktop using jlink'
+    dependsOn 'jar'
+    
+    def jlinkDir = file("$buildDir/jlink")
+    def modulePath = configurations.runtimeClasspath.files.join(File.pathSeparator) + 
+                    File.pathSeparator + jar.archiveFile.get().asFile
+    
+    commandLine 'jlink',
+        '--module-path', modulePath,
+        '--add-modules', 'com.example.desktop,com.example.shared,java.desktop',
+        '--output', jlinkDir,
+        '--compress', '2',
+        '--strip-debug',
+        '--no-man-pages',
+        '--no-header-files'
+    
+    doLast {
+        println "JLink image created at: ${jlinkDir}"
+        println "Size: ${jlinkDir.directorySize() / 1024 / 1024} MB"
+    }
+}
+
+// Custom task for GraalVM native image
+task createNativeImage {
+    group = 'distribution'
+    description = 'Create native executable for desktop using GraalVM'
+    dependsOn 'jar'
+    
+    doLast {
+        def nativeImageDir = file("$buildDir/native")
+        nativeImageDir.mkdirs()
+        
+        def classpath = configurations.runtimeClasspath.files.join(File.pathSeparator) + 
+                       File.pathSeparator + jar.archiveFile.get().asFile
+        
+        exec {
+            commandLine 'native-image',
+                '--class-path', classpath,
+                '--module-path', configurations.runtimeClasspath.files.join(File.pathSeparator),
+                '--module', 'com.example.desktop',
+                '--output', "${nativeImageDir}/system-test-desktop",
+                '--no-fallback',
+                '--enable-preview',
+                '--initialize-at-build-time=com.example',
+                '--report-unsupported-elements-at-runtime'
+        }
+        
+        println "Native image created at: ${nativeImageDir}/system-test-desktop"
+    }
+}
+
+compileJava.dependsOn generateModuleInfo

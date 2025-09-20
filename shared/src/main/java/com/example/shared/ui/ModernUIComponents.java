@@ -1,4 +1,4 @@
-package com.example.ui;
+package com.example.shared.ui;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -85,7 +85,7 @@ public class ModernUIComponents {
      * Creates a theme toggle button (moon/sun emoji)
      */
     public static JButton createThemeToggleButton() {
-        JButton button = new JButton("🌙");
+        JButton button = new JButton("dark");
         button.setFont(new Font("SF Pro Text", Font.PLAIN, 20));
         button.setAlignmentX(Component.CENTER_ALIGNMENT);
         button.setMaximumSize(new Dimension(50, 50));
@@ -98,7 +98,7 @@ public class ModernUIComponents {
         // Modern Java: Lambda expression with ternary operator
         button.addActionListener(e -> {
             themeManager.toggleTheme();
-            button.setText(themeManager.isDarkMode() ? "☀️" : "🌙");
+            button.setText(themeManager.isDarkMode() ? "light" : "dark");
         });
         
         return button;

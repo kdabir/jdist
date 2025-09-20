@@ -1,7 +1,8 @@
-package com.example;
+package com.example.desktop;
 
-import com.example.ui.ModernUIComponents;
-import com.example.ui.UIThemeManager;
+import com.example.shared.ui.ModernUIComponents;
+import com.example.shared.ui.UIThemeManager;
+import com.example.shared.test.SystemTestRunner;
 
 import javax.swing.*;
 import java.awt.*;
@@ -9,7 +10,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 
-public class HelloWorldApp extends JFrame {
+public class DesktopApp extends JFrame {
     private JTextField nameField;
     private JLabel greetingLabel;
     private JPanel mainPanel;
@@ -17,7 +18,7 @@ public class HelloWorldApp extends JFrame {
     private JButton themeButton;
     private UIThemeManager themeManager;
     
-    public HelloWorldApp() {
+    public DesktopApp() {
         // Initialize theme manager
         themeManager = UIThemeManager.getInstance();
         
@@ -149,50 +150,38 @@ public class HelloWorldApp extends JFrame {
             greetingLabel.setText("❌ Please enter your name to run the test!");
             greetingLabel.setForeground(themeManager.getErrorColor());
         } else {
-            // Simulate system test validation
-            boolean testPassed = performSystemTest(name);
-            if (testPassed) {
-                // Using text blocks with string interpolation
-                greetingLabel.setText("""
-                    ✅ TEST SUCCESSFUL!
-                    Hello %s, your installation is working correctly!
-                    System test completed successfully.
-                    """.formatted(name));
-                greetingLabel.setForeground(themeManager.getSuccessColor());
-            } else {
-                greetingLabel.setText("""
-                    ❌ TEST FAILED!
-                    There seems to be an issue with your installation.
-                    Please check your setup and try again.
-                    """);
-                greetingLabel.setForeground(themeManager.getErrorColor());
-            }
-        }
-    }
-    
-    private boolean performSystemTest(String name) {
-        // Simulate various system tests
-        try {
-            // Test 1: Basic input validation
-            if (name.length() < 2) return false;
-            
-            // Test 2: UI responsiveness
-            Thread.sleep(100); // Simulate processing
-            
-            // Test 3: Theme system
-            themeManager.getBackgroundColor();
-            themeManager.getForegroundColor();
-            
-            // Test 4: Component rendering
-            nameField.getText();
-            greetButton.isEnabled();
-            
-            // Test 5: Event handling
-            // (This method being called proves event handling works)
-            
-            return true; // All tests passed
-        } catch (Exception e) {
-            return false; // Test failed
+            // Use shared system test runner
+            SystemTestRunner.runSystemTest(name)
+                .thenAccept(result -> {
+                    SwingUtilities.invokeLater(() -> {
+                        if (result.isSuccess()) {
+                            greetingLabel.setText("""
+                                ✅ TEST SUCCESSFUL!
+                                Hello %s, your installation is working correctly!
+                                System test completed successfully.
+                                """.formatted(name));
+                            greetingLabel.setForeground(themeManager.getSuccessColor());
+                        } else {
+                            greetingLabel.setText("""
+                                ❌ TEST FAILED!
+                                %s
+                                Please check your setup and try again.
+                                """.formatted(result.getMessage()));
+                            greetingLabel.setForeground(themeManager.getErrorColor());
+                        }
+                    });
+                })
+                .exceptionally(throwable -> {
+                    SwingUtilities.invokeLater(() -> {
+                        greetingLabel.setText("""
+                            ❌ TEST ERROR!
+                            %s
+                            Please check your setup and try again.
+                            """.formatted(throwable.getMessage()));
+                        greetingLabel.setForeground(themeManager.getErrorColor());
+                    });
+                    return null;
+                });
         }
     }
     
@@ -205,7 +194,7 @@ public class HelloWorldApp extends JFrame {
     
     public static void main(String[] args) {
         // Ensure GUI is created on Event Dispatch Thread
-        SwingUtilities.invokeLater(() -> new HelloWorldApp().setVisible(true));
+        SwingUtilities.invokeLater(() -> new DesktopApp().setVisible(true));
     }
 }
 

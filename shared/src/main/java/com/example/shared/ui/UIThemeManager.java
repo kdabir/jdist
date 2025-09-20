@@ -1,4 +1,4 @@
-package com.example.ui;
+package com.example.shared.ui;
 
 import javax.swing.*;
 import java.awt.*;
