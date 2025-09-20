@@ -100,7 +100,6 @@ jobs:
       with:
         java-version: 24
         distribution: graalvm
-        components: native-image
         
     - name: Cache Gradle packages
       uses: actions/cache@v4
@@ -207,7 +206,7 @@ jobs:
 
   # Stage 2: Package Windows (Parallel)
   package-windows:
-    runs-on: windows-latest
+    runs-on: windows-2025
     needs: build-and-test
     
     steps:
@@ -216,17 +215,17 @@ jobs:
       
     - name: Show Project Matrix
       run: |
-        echo "Building System Test Suite for Windows:"
-        echo "   Desktop App -> Windows (.msi)"
-        echo "   CLI App -> Windows (native executable)"
-        echo "   Service App -> Windows (native executable)"
-        echo "   Service-Desktop App -> Windows (.msi)"
-        echo ""
-        echo "Artifacts will be generated in:"
-        echo "   - build/jpackage/ (Desktop & Service-Desktop)"
-        echo "   - cli/build/jpackage/ (CLI native)"
-        echo "   - service/build/jpackage/ (Service native)"
-      shell: powershell
+        echo Building System Test Suite for Windows:
+        echo    Desktop App -^> Windows (.msi)
+        echo    CLI App -^> Windows (native executable)
+        echo    Service App -^> Windows (native executable)
+        echo    Service-Desktop App -^> Windows (.msi)
+        echo.
+        echo Artifacts will be generated in:
+        echo    - build/jpackage/ (Desktop ^& Service-Desktop)
+        echo    - cli/build/jpackage/ (CLI native)
+        echo    - service/build/jpackage/ (Service native)
+      shell: cmd
       
     - name: Set up JDK 24
       uses: actions/setup-java@v4
@@ -239,7 +238,6 @@ jobs:
       with:
         java-version: 24
         distribution: graalvm
-        components: native-image
         
     - name: Cache Gradle packages
       uses: actions/cache@v4
@@ -294,40 +292,36 @@ jobs:
       
     - name: Generate Compatibility Report
       run: |
-        echo "Windows Build Compatibility Report"
-        echo "=================================="
-        echo ""
-        echo "| App Type | Native | jlink+package |"
-        echo "|----------|--------|---------------|"
+        echo Windows Build Compatibility Report
+        echo ==================================
+        echo.
+        echo ^| App Type ^| Native ^| jlink+package ^|
+        echo ^|----------^|--------^|---------------^|
         
-        # Check CLI native
-        if (Test-Path "cli\build\native\nativeCompile\cli.exe") {
-          echo "| CLI      | X      | X             |"
-        } else {
-          echo "| CLI      | Fail   | X             |"
-        }
+        if exist "cli\build\native\nativeCompile\cli.exe" (
+          echo ^| CLI      ^| X      ^| X             ^|
+        ) else (
+          echo ^| CLI      ^| Fail   ^| X             ^|
+        )
         
-        # Check Desktop jlink+package
-        if (Test-Path "desktop\build\jpackage") {
-          echo "| Desktop  | Fail   | X             |"
-        } else {
-          echo "| Desktop  | Fail   | Fail          |"
-        }
+        if exist "desktop\build\jpackage" (
+          echo ^| Desktop  ^| Fail   ^| X             ^|
+        ) else (
+          echo ^| Desktop  ^| Fail   ^| Fail          ^|
+        )
         
-        # Check Service native
-        if (Test-Path "service\build\native\nativeCompile\service.exe") {
-          echo "| Service  | X      | X             |"
-        } else {
-          echo "| Service  | Fail   | X             |"
-        }
+        if exist "service\build\native\nativeCompile\service.exe" (
+          echo ^| Service  ^| X      ^| X             ^|
+        ) else (
+          echo ^| Service  ^| Fail   ^| X             ^|
+        )
         
-        # Check Service-Desktop jlink+package
-        if (Test-Path "service-desktop\build\jpackage") {
-          echo "| Service-Desktop | Fail   | X             |"
-        } else {
-          echo "| Service-Desktop | Fail   | Fail          |"
-        }
-      shell: powershell
+        if exist "service-desktop\build\jpackage" (
+          echo ^| Service-Desktop ^| Fail   ^| X             ^|
+        ) else (
+          echo ^| Service-Desktop ^| Fail   ^| Fail          ^|
+        )
+      shell: cmd
       
     - name: Upload Windows artifacts
       uses: actions/upload-artifact@v4
@@ -375,7 +369,6 @@ jobs:
       with:
         java-version: 24
         distribution: graalvm
-        components: native-image
         
     - name: Install jpackage dependencies
       run: |
