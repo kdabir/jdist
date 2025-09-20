@@ -1,0 +1,140 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'org.graalvm.buildtools.native'
+}
+
+group = 'com.example'
+version = '1.0.0'
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_24
+    targetCompatibility = JavaVersion.VERSION_24
+    modularity.inferModulePath = true
+}
+
+application {
+    mainClass = 'com.example.servicedesktop.ServiceDesktopApp'
+}
+
+dependencies {
+    implementation project(':service')
+    implementation project(':shared')
+    implementation 'io.javalin:javalin:5.6.3'
+    implementation 'org.slf4j:slf4j-simple:2.0.9'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.16.1'
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.16.1'
+}
+
+// Generate module-info.java
+task generateModuleInfo {
+    doLast {
+        def moduleInfo = """module com.example.servicedesktop {
+    requires com.example.service;
+    requires com.example.shared;
+    requires io.javalin;
+    requires org.slf4j;
+    requires com.fasterxml.jackson.databind;
+    requires com.fasterxml.jackson.core;
+    requires java.logging;
+    requires java.desktop;
+    
+    exports com.example.servicedesktop;
+}"""
+        
+        def moduleFile = file('src/main/java/module-info.java')
+        moduleFile.text = moduleInfo
+        println "Generated module-info.java for com.example.servicedesktop"
+    }
+}
+
+compileJava.dependsOn generateModuleInfo
+
+// GraalVM Native Image
+graalvmNative {
+    binaries {
+        main {
+            imageName = 'system-test-service-desktop'
+            mainClass = 'com.example.servicedesktop.ServiceDesktopApp'
+            buildArgs.addAll([
+                '--no-fallback',
+                '--enable-preview',
+                '--initialize-at-build-time',
+                '--report-unsupported-elements-at-runtime'
+            ])
+        }
+    }
+}
+
+// JLink task
+task createJlinkImage(type: Exec) {
+    dependsOn 'jar'
+    
+    def jlinkDir = file("$buildDir/jlink")
+    
+    doFirst {
+        delete jlinkDir
+    }
+    
+    commandLine 'jlink', 
+        '--module-path', "${configurations.runtimeClasspath.asPath}:${jar.archiveFile.get().asFile.parent}",
+        '--add-modules', 'com.example.servicedesktop',
+        '--output', jlinkDir,
+        '--strip-debug',
+        '--compress', '2',
+        '--no-header-files',
+        '--no-man-pages'
+    
+    doLast {
+        println "JLink image created at: $jlinkDir"
+    }
+}
+
+// jpackage tasks for service-desktop
+task packageServiceDesktopMac(type: Exec) {
+    dependsOn 'jar'
+    
+    // Only run on macOS
+    onlyIf { System.getProperty('os.name').toLowerCase().contains('mac') }
+    
+    commandLine 'jpackage',
+        '--input', jar.archiveFile.get().asFile.parent,
+        '--main-jar', jar.archiveFile.get().asFile.name,
+        '--main-class', 'com.example.servicedesktop.ServiceDesktopApp',
+        '--name', 'Hello World Service Desktop',
+        '--description', 'Hello World Web Service with Desktop Integration',
+        '--type', 'dmg',
+        '--dest', 'build/distributions'
+}
+
+task packageServiceDesktopWindows(type: Exec) {
+    dependsOn 'jar'
+    
+    // Only run on Windows
+    onlyIf { System.getProperty('os.name').toLowerCase().contains('windows') }
+    
+    commandLine 'jpackage',
+        '--input', jar.archiveFile.get().asFile.parent,
+        '--main-jar', jar.archiveFile.get().asFile.name,
+        '--main-class', 'com.example.servicedesktop.ServiceDesktopApp',
+        '--name', 'Hello World Service Desktop',
+        '--description', 'Hello World Web Service with Desktop Integration',
+        '--type', 'msi',
+        '--dest', 'build/distributions'
+}
+
+task packageServiceDesktopLinux(type: Exec) {
+    dependsOn 'jar'
+    
+    // Only run on Linux
+    onlyIf { System.getProperty('os.name').toLowerCase().contains('linux') }
+    
+    commandLine 'jpackage',
+        '--input', jar.archiveFile.get().asFile.parent,
+        '--main-jar', jar.archiveFile.get().asFile.name,
+        '--main-class', 'com.example.servicedesktop.ServiceDesktopApp',
+        '--name', 'Hello World Service Desktop',
+        '--description', 'Hello World Web Service with Desktop Integration',
+        '--type', 'deb',
+        '--dest', 'build/distributions'
+}

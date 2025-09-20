@@ -1,0 +1,33 @@
+plugins {
+    id 'java'
+    id 'org.graalvm.buildtools.native'
+}
+
+dependencies {
+    // Shared module has no external dependencies
+}
+
+// Custom task to generate module-info.java automatically
+task generateModuleInfo {
+    group = 'build'
+    description = 'Generate module-info.java based on dependencies'
+    
+    doLast {
+        def moduleName = 'com.example.shared'
+        def moduleInfo = """module ${moduleName} {
+    requires java.desktop;
+    requires java.logging;
+    
+    exports com.example.shared.ui;
+    exports com.example.shared.test;
+    exports com.example.shared.util;
+}"""
+        
+        def moduleInfoFile = file('src/main/java/module-info.java')
+        moduleInfoFile.text = moduleInfo
+        println "Generated module-info.java for ${moduleName}"
+    }
+}
+
+// Run module info generation before compilation
+compileJava.dependsOn generateModuleInfo

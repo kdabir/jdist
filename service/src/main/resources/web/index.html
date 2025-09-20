@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Test Service</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #333;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 600px;
+            width: 90%;
+            text-align: center;
+        }
+        
+        .logo {
+            font-size: 3rem;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+        
+        .subtitle {
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 1.2rem;
+        }
+        
+        .test-form {
+            margin: 30px 0;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            transition: border-color 0.3s ease;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            margin: 5px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .loading {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .status-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .status-card h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .status-card p {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        
+        .endpoint-list {
+            text-align: left;
+            margin-top: 20px;
+        }
+        
+        .endpoint {
+            background: #f8f9fa;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+        
+        .method {
+            font-weight: bold;
+            color: #28a745;
+        }
+        
+        .url {
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🚀</div>
+        <h1>System Test Service</h1>
+        <p class="subtitle">Test your Java installation and system configuration</p>
+        
+        <div class="test-form">
+            <div class="input-group">
+                <input type="text" id="userName" placeholder="Enter your name" value="User">
+            </div>
+            <button class="btn" onclick="runQuickTest()">Quick Test</button>
+            <button class="btn" onclick="runComprehensiveTest()">Comprehensive Test</button>
+        </div>
+        
+        <div id="result" class="result" style="display: none;"></div>
+        
+        <div class="status-grid">
+            <div class="status-card">
+                <h3>Service Status</h3>
+                <p id="serviceStatus">Checking...</p>
+            </div>
+            <div class="status-card">
+                <h3>System Info</h3>
+                <p id="systemInfo">Loading...</p>
+            </div>
+        </div>
+        
+        <div class="endpoint-list">
+            <h3>Available API Endpoints:</h3>
+            <div class="endpoint">
+                <span class="method">GET</span> <span class="url">/health</span> - Health check
+            </div>
+            <div class="endpoint">
+                <span class="method">GET</span> <span class="url">/status</span> - System status
+            </div>
+            <div class="endpoint">
+                <span class="method">GET</span> <span class="url">/test/quick?name=YourName</span> - Quick test
+            </div>
+            <div class="endpoint">
+                <span class="method">POST</span> <span class="url">/test</span> - Comprehensive test
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Load service status on page load
+        window.onload = function() {
+            loadServiceStatus();
+            loadSystemInfo();
+        };
+        
+        function showResult(message, isSuccess) {
+            const result = document.getElementById('result');
+            result.style.display = 'block';
+            result.textContent = message;
+            result.className = 'result ' + (isSuccess ? 'success' : 'error');
+        }
+        
+        function showLoading(message) {
+            const result = document.getElementById('result');
+            result.style.display = 'block';
+            result.textContent = message;
+            result.className = 'result loading';
+        }
+        
+        async function runQuickTest() {
+            const userName = document.getElementById('userName').value.trim();
+            if (!userName) {
+                showResult('Please enter your name!', false);
+                return;
+            }
+            
+            showLoading('Running quick test...');
+            
+            try {
+                const response = await fetch(`/test/quick?name=${encodeURIComponent(userName)}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    showResult(data.message, true);
+                } else {
+                    showResult(data.message, false);
+                }
+            } catch (error) {
+                showResult('Test failed: ' + error.message, false);
+            }
+        }
+        
+        async function runComprehensiveTest() {
+            const userName = document.getElementById('userName').value.trim();
+            if (!userName) {
+                showResult('Please enter your name!', false);
+                return;
+            }
+            
+            showLoading('Running comprehensive test...');
+            
+            try {
+                const response = await fetch('/test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name: userName })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    showResult(data.message, true);
+                } else {
+                    showResult(data.message, false);
+                }
+            } catch (error) {
+                showResult('Test failed: ' + error.message, false);
+            }
+        }
+        
+        async function loadServiceStatus() {
+            try {
+                const response = await fetch('/health');
+                const data = await response.json();
+                document.getElementById('serviceStatus').textContent = data.status + ' - ' + data.message;
+            } catch (error) {
+                document.getElementById('serviceStatus').textContent = 'Error: ' + error.message;
+            }
+        }
+        
+        async function loadSystemInfo() {
+            try {
+                const response = await fetch('/status');
+                const data = await response.json();
+                document.getElementById('systemInfo').textContent = 
+                    `${data.osName} | Java ${data.javaVersion}`;
+            } catch (error) {
+                document.getElementById('systemInfo').textContent = 'Error loading system info';
+            }
+        }
+    </script>
+</body>
+</html>

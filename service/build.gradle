@@ -1,0 +1,180 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'org.graalvm.buildtools.native'
+}
+
+application {
+    mainClass = 'com.example.service.ServiceApp'
+}
+
+dependencies {
+    implementation project(':shared')
+    
+    // Web service dependencies
+    implementation 'io.javalin:javalin:5.6.3'
+    implementation 'org.slf4j:slf4j-simple:2.0.9'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.16.1'
+    implementation 'com.fasterxml.jackson.core:jackson-core:2.16.1'
+    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.16.1'
+}
+
+// Custom task to generate module-info.java
+task generateModuleInfo {
+    group = 'build'
+    description = 'Generate module-info.java for Service module'
+    
+    doLast {
+        def moduleName = 'com.example.service'
+        def moduleInfo = """module ${moduleName} {
+    requires com.example.shared;
+    requires io.javalin;
+    requires org.slf4j;
+    requires com.fasterxml.jackson.databind;
+    requires com.fasterxml.jackson.core;
+    requires java.logging;
+    
+    exports com.example.service;
+}"""
+        
+        def moduleInfoFile = file('src/main/java/module-info.java')
+        moduleInfoFile.text = moduleInfo
+        println "Generated module-info.java for ${moduleName}"
+    }
+}
+
+// Custom task for jlink
+task createJlinkImage(type: Exec) {
+    group = 'distribution'
+    description = 'Create custom JVM image for service using jlink'
+    dependsOn 'jar'
+    
+    def jlinkDir = file("$buildDir/jlink")
+    def modulePath = configurations.runtimeClasspath.files.join(File.pathSeparator) + 
+                    File.pathSeparator + jar.archiveFile.get().asFile
+    
+    commandLine 'jlink',
+        '--module-path', modulePath,
+        '--add-modules', 'com.example.service,com.example.shared,io.javalin,java.desktop',
+        '--output', jlinkDir,
+        '--compress', '2',
+        '--strip-debug',
+        '--no-man-pages',
+        '--no-header-files'
+    
+    doLast {
+        println "JLink image created at: ${jlinkDir}"
+        println "Size: ${jlinkDir.directorySize() / 1024 / 1024} MB"
+    }
+}
+
+// Custom task for GraalVM native image
+task createNativeImage {
+    group = 'distribution'
+    description = 'Create native executable for service using GraalVM'
+    dependsOn 'jar'
+    
+    doLast {
+        def nativeImageDir = file("$buildDir/native")
+        nativeImageDir.mkdirs()
+        
+        def classpath = configurations.runtimeClasspath.files.join(File.pathSeparator) + 
+                       File.pathSeparator + jar.archiveFile.get().asFile
+        
+        exec {
+            commandLine 'native-image',
+                '--class-path', classpath,
+                '--module-path', configurations.runtimeClasspath.files.join(File.pathSeparator),
+                '--module', 'com.example.service',
+                '--output', 'system-test-service',
+                '--no-fallback',
+                '--enable-preview',
+                '--initialize-at-build-time=com.example'
+        }
+        
+        println "Native image created at: ${nativeImageDir}/system-test-service"
+    }
+}
+
+// GraalVM Native Image configuration
+graalvmNative {
+    binaries {
+        main {
+            imageName = 'system-test-service'
+            mainClass = 'com.example.service.ServiceApp'
+            buildArgs.addAll([
+                '--no-fallback',
+                '--enable-preview',
+                '--initialize-at-build-time',
+                '--report-unsupported-elements-at-runtime'
+            ])
+        }
+    }
+}
+
+// jpackage tasks for service
+task packageServiceMac(type: Exec) {
+    group = 'distribution'
+    description = 'Create macOS .dmg for service app'
+    dependsOn 'jar'
+    
+    commandLine 'jpackage',
+        '--input', 'build/libs',
+        '--main-jar', "${project.name}-${project.version}.jar",
+        '--main-class', 'com.example.service.ServiceApp',
+        '--name', 'Hello World Service',
+        '--app-version', project.version,
+        '--vendor', 'Example Corp',
+        '--description', 'Hello World Web Service with System Testing',
+        '--type', 'dmg',
+        '--dest', 'build/distributions',
+        '--java-options', '--enable-preview',
+        '--java-options', '-Dapple.laf.useScreenMenuBar=true',
+        '--java-options', '-Dcom.apple.macos.useScreenMenuBar=true',
+        '--java-options', '-Dcom.apple.mrj.application.apple.menu.about.name=Hello World Service',
+        '--mac-package-identifier', 'com.example.helloworldservice'
+}
+
+task packageServiceWindows(type: Exec) {
+    group = 'distribution'
+    description = 'Create Windows .msi for service app'
+    dependsOn 'jar'
+    
+    commandLine 'jpackage',
+        '--input', 'build/libs',
+        '--main-jar', "${project.name}-${project.version}.jar",
+        '--main-class', 'com.example.service.ServiceApp',
+        '--name', 'Hello World Service',
+        '--app-version', project.version,
+        '--vendor', 'Example Corp',
+        '--description', 'Hello World Web Service with System Testing',
+        '--type', 'msi',
+        '--dest', 'build/distributions',
+        '--java-options', '--enable-preview',
+        '--win-console',
+        '--win-dir-chooser',
+        '--win-menu',
+        '--win-shortcut'
+}
+
+task packageServiceLinux(type: Exec) {
+    group = 'distribution'
+    description = 'Create Linux .deb for service app'
+    dependsOn 'jar'
+    
+    commandLine 'jpackage',
+        '--input', 'build/libs',
+        '--main-jar', "${project.name}-${project.version}.jar",
+        '--main-class', 'com.example.service.ServiceApp',
+        '--name', 'Hello World Service',
+        '--app-version', project.version,
+        '--vendor', 'Example Corp',
+        '--description', 'Hello World Web Service with System Testing',
+        '--type', 'deb',
+        '--dest', 'build/distributions',
+        '--java-options', '--enable-preview',
+        '--linux-menu-group', 'Development',
+        '--linux-shortcut'
+}
+
+compileJava.dependsOn generateModuleInfo

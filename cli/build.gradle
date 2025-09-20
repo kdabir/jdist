@@ -1,0 +1,114 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'org.graalvm.buildtools.native'
+}
+
+application {
+    mainClass = 'com.example.cli.CliApp'
+}
+
+dependencies {
+    implementation project(':shared')
+    
+    // CLI dependencies
+    implementation 'info.picocli:picocli:4.7.5'
+    annotationProcessor 'info.picocli:picocli-codegen:4.7.5'
+    
+    // Logging
+    implementation 'org.slf4j:slf4j-simple:2.0.9'
+}
+
+// Custom task to generate module-info.java
+task generateModuleInfo {
+    group = 'build'
+    description = 'Generate module-info.java for CLI module'
+    
+    doLast {
+        def moduleName = 'com.example.cli'
+        def moduleInfo = """module ${moduleName} {
+    requires com.example.shared;
+    requires info.picocli;
+    requires org.slf4j;
+    requires java.logging;
+    
+    exports com.example.cli;
+}"""
+        
+        def moduleInfoFile = file('src/main/java/module-info.java')
+        moduleInfoFile.text = moduleInfo
+        println "Generated module-info.java for ${moduleName}"
+    }
+}
+
+// Custom task for jlink
+task createJlinkImage(type: Exec) {
+    group = 'distribution'
+    description = 'Create custom JVM image using jlink'
+    dependsOn 'jar'
+    
+    def jlinkDir = file("$buildDir/jlink")
+    def modulePath = configurations.runtimeClasspath.files.join(File.pathSeparator) + 
+                    File.pathSeparator + jar.archiveFile.get().asFile
+    
+    commandLine 'jlink',
+        '--module-path', modulePath,
+        '--add-modules', 'com.example.cli,com.example.shared',
+        '--output', jlinkDir,
+        '--compress', '2',
+        '--strip-debug',
+        '--no-man-pages',
+        '--no-header-files'
+    
+    doLast {
+        println "JLink image created at: ${jlinkDir}"
+        println "Size: ${jlinkDir.directorySize() / 1024 / 1024} MB"
+    }
+}
+
+// Custom task for GraalVM native image
+task createNativeImage {
+    group = 'distribution'
+    description = 'Create native executable using GraalVM'
+    dependsOn 'jar'
+    
+    doLast {
+        def nativeImageDir = file("$buildDir/native")
+        nativeImageDir.mkdirs()
+        
+        def classpath = configurations.runtimeClasspath.files.join(File.pathSeparator) + 
+                       File.pathSeparator + jar.archiveFile.get().asFile
+        
+        exec {
+            commandLine 'native-image',
+                '--class-path', classpath,
+                '--module-path', configurations.runtimeClasspath.files.join(File.pathSeparator),
+                '--module', 'com.example.cli',
+                '--output', "${nativeImageDir}/system-test-cli",
+                '--no-fallback',
+                '--enable-preview',
+                '--initialize-at-build-time=com.example',
+                '--report-unsupported-elements-at-runtime'
+        }
+        
+        println "Native image created at: ${nativeImageDir}/system-test-cli"
+    }
+}
+
+// GraalVM Native Image configuration
+graalvmNative {
+    binaries {
+        main {
+            imageName = 'system-test-cli'
+            mainClass = 'com.example.cli.CliApp'
+            buildArgs.addAll([
+                '--no-fallback',
+                '--enable-preview',
+                '--initialize-at-build-time',
+                '--report-unsupported-elements-at-runtime'
+            ])
+        }
+    }
+}
+
+compileJava.dependsOn generateModuleInfo

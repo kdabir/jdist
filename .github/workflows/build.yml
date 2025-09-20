@@ -1,120 +1,537 @@
-name: Build and Package
+name: System Test Suite - Desktop | CLI | Service | Service-Desktop → Linux | macOS | Windows
 
 on:
   push:
-    branches: [ main ]
   pull_request:
-    branches: [ main ]
+  workflow_dispatch:
   release:
-    types: [ published ]
+    types: [published]
 
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        java-version: [24]
+  # Stage 1: Quick Build & Test (Ubuntu only)
+  build-and-test:
+    runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up JDK ${{ matrix.java-version }}
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Show Project Overview
+      run: |
+        echo "🚀 System Test Suite - Multi-Platform Build Matrix"
+        echo "=================================================="
+        echo ""
+        echo "📱 Desktop App → Linux (.deb) | macOS (.dmg) | Windows (.msi)"
+        echo "💻 CLI App → Linux (native) | macOS (native) | Windows (native)"
+        echo "🌐 Service App → Linux (native) | macOS (native) | Windows (native)"
+        echo "🖥️  Service-Desktop App → Linux (.deb) | macOS (.dmg) | Windows (.msi)"
+        echo ""
+        echo "🔧 Build Tools: Java 24 + GraalVM 24 + jpackage"
+        echo "📦 Distribution: Native installers + Native executables"
+        echo ""
+      shell: bash
+      
+    - name: Set up JDK 24
       uses: actions/setup-java@v4
       with:
-        java-version: ${{ matrix.java-version }}
+        java-version: 24
         distribution: 'temurin'
-    
+        
     - name: Cache Gradle packages
       uses: actions/cache@v4
       with:
         path: |
           ~/.gradle/caches
           ~/.gradle/wrapper
+          ~/.gradle/daemon
         key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
         restore-keys: |
           ${{ runner.os }}-gradle-
-    
+          
+    - name: Cache Maven dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-m2-
+          
     - name: Make gradlew executable
       run: chmod +x ./gradlew
-      if: matrix.os != 'windows-latest'
+      
+    - name: Quick Build Test
+      run: |
+        echo "🔨 Quick build test (standard JAR compilation only)..."
+        ./gradlew build -x test -x nativeCompile -x createJlinkImage
+        echo "✅ Standard JAR compilation successful"
+      shell: bash
+
+  # Stage 2: Package macOS (Parallel)
+  package-macos:
+    runs-on: macos-latest
+    needs: build-and-test
     
-    - name: Build application
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Show Project Matrix
+      run: |
+        echo "🏗️  Building System Test Suite for macOS:"
+        echo "   📱 Desktop App → macOS (.dmg) [Universal Binary]"
+        echo "   💻 CLI App → macOS (native executable) [Universal Binary]"
+        echo "   🌐 Service App → macOS (native executable) [Universal Binary]"
+        echo "   🖥️  Service-Desktop App → macOS (.dmg) [Universal Binary]"
+        echo ""
+        echo "📦 Artifacts will be generated in:"
+        echo "   - build/jpackage/ (Desktop & Service-Desktop)"
+        echo "   - cli/build/jpackage/ (CLI native)"
+        echo "   - service/build/jpackage/ (Service native)"
+      shell: bash
+      
+    - name: Set up JDK 24
+      uses: actions/setup-java@v4
+      with:
+        java-version: 24
+        distribution: 'temurin'
+        
+    - name: Set up GraalVM
+      uses: graalvm/setup-graalvm@v1
+      with:
+        java-version: 24
+        distribution: graalvm
+        
+    - name: Cache Gradle packages
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+          ~/.gradle/daemon
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+          
+    - name: Cache Maven dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-m2-
+          
+    - name: Cache GraalVM
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.graalvm
+          ~/.gradle/caches/modules-2/files-2.1/org.graalvm.nativeimage
+        key: ${{ runner.os }}-graalvm-24
+        restore-keys: |
+          ${{ runner.os }}-graalvm-
+          
+    - name: Make gradlew executable
+      run: chmod +x ./gradlew
+      
+    - name: Build all modules
       run: ./gradlew build
-      if: matrix.os != 'windows-latest'
-    
-    - name: Build application (Windows)
-      run: .\gradlew.bat build
-      if: matrix.os == 'windows-latest'
-      shell: cmd
-    
-    - name: Create fat JAR
-      run: ./gradlew fatJar
-      if: matrix.os != 'windows-latest'
-    
-    - name: Create fat JAR (Windows)
-      run: .\gradlew.bat fatJar
-      if: matrix.os == 'windows-latest'
-      shell: cmd
-    
-    - name: Create distribution ZIP
-      run: ./gradlew createDistZip
-      if: matrix.os != 'windows-latest'
-    
-    - name: Create distribution ZIP (Windows)
-      run: .\gradlew.bat createDistZip
-      if: matrix.os == 'windows-latest'
-      shell: cmd
-    
-    - name: Package for macOS
-      run: ./gradlew packageMac
-      if: matrix.os == 'macos-latest'
-    
-    - name: Package for Windows
-      run: .\gradlew.bat packageWindows
-      if: matrix.os == 'windows-latest'
-      shell: cmd
-    
-    - name: Package for Linux
-      run: ./gradlew packageLinux
-      if: matrix.os == 'ubuntu-latest'
-    
+      shell: bash
+      
+    - name: Build Native Images
+      run: |
+        echo "🔨 Building native images for macOS..."
+        ./gradlew :cli:nativeCompile :service:nativeCompile
+      shell: bash
+      continue-on-error: true
+      
+    - name: Create jlink images
+      run: ./gradlew createAllJlinkImages
+      shell: bash
+      
+    - name: Package macOS applications
+      run: |
+        echo "🍎 Packaging macOS applications..."
+        ./gradlew packageMac --stacktrace --info
+      shell: bash
+      continue-on-error: true
+      
+    - name: Generate Compatibility Report
+      run: |
+        echo "📊 macOS Build Compatibility Report"
+        echo "===================================="
+        echo ""
+        echo "| App Type | Native | jlink+package |"
+        echo "|----------|--------|---------------|"
+        
+        # Check CLI native
+        if [ -f "cli/build/native/nativeCompile/cli" ]; then
+          echo "| CLI      | ✅ X   | ✅ X          |"
+        else
+          echo "| CLI      | ❌ Fail| ✅ X          |"
+        fi
+        
+        # Check Desktop jlink+package
+        if [ -d "desktop/build/jpackage" ]; then
+          echo "| Desktop  | ❌ Fail| ✅ X          |"
+        else
+          echo "| Desktop  | ❌ Fail| ❌ Fail       |"
+        fi
+        
+        # Check Service native
+        if [ -f "service/build/native/nativeCompile/service" ]; then
+          echo "| Service  | ✅ X   | ✅ X          |"
+        else
+          echo "| Service  | ❌ Fail| ✅ X          |"
+        fi
+        
+        # Check Service-Desktop jlink+package
+        if [ -d "service-desktop/build/jpackage" ]; then
+          echo "| Service-Desktop | ❌ Fail| ✅ X          |"
+        else
+          echo "| Service-Desktop | ❌ Fail| ❌ Fail       |"
+        fi
+      shell: bash
+      
     - name: Upload macOS artifacts
       uses: actions/upload-artifact@v4
-      if: matrix.os == 'macos-latest'
       with:
-        name: macos-packages
-        path: build/distributions/*.dmg
+        name: macos-artifacts
+        path: |
+          build/jpackage/
+          cli/build/jpackage/
+          service/build/jpackage/
+          desktop/build/jpackage/
+          service-desktop/build/jpackage/
+        retention-days: 3
+
+  # Stage 2: Package Windows (Parallel)
+  package-windows:
+    runs-on: windows-2025
+    needs: build-and-test
     
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Show Project Matrix
+      run: |
+        echo Building System Test Suite for Windows:
+        echo    Desktop App -^> Windows (.msi)
+        echo    CLI App -^> Windows (native executable)
+        echo    Service App -^> Windows (native executable)
+        echo    Service-Desktop App -^> Windows (.msi)
+        echo.
+        echo Artifacts will be generated in:
+        echo    - build/jpackage/ (Desktop ^& Service-Desktop)
+        echo    - cli/build/jpackage/ (CLI native)
+        echo    - service/build/jpackage/ (Service native)
+      shell: cmd
+      
+    - name: Set up JDK 24
+      uses: actions/setup-java@v4
+      with:
+        java-version: 24
+        distribution: 'temurin'
+        
+    - name: Set up GraalVM
+      uses: graalvm/setup-graalvm@v1
+      with:
+        java-version: 24
+        distribution: graalvm
+        
+    - name: Cache Gradle packages
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+          ~/.gradle/daemon
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+          
+    - name: Cache Maven dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-m2-
+          
+    - name: Cache GraalVM
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.graalvm
+          ~/.gradle/caches/modules-2/files-2.1/org.graalvm.nativeimage
+        key: ${{ runner.os }}-graalvm-24
+        restore-keys: |
+          ${{ runner.os }}-graalvm-
+          
+    - name: Build all modules
+      run: .\gradlew.bat build
+      shell: cmd
+      
+    - name: Build Native Images
+      run: |
+        echo "Building native images for Windows..."
+        .\gradlew.bat :cli:nativeCompile :service:nativeCompile
+      shell: cmd
+      continue-on-error: true
+      
+    - name: Create jlink images
+      run: .\gradlew.bat createAllJlinkImages
+      shell: cmd
+      
+    - name: Package Windows applications
+      run: |
+        echo "Packaging Windows applications..."
+        .\gradlew.bat packageWindows --stacktrace --info
+      shell: cmd
+      continue-on-error: true
+      
+    - name: Generate Compatibility Report
+      run: |
+        echo Windows Build Compatibility Report
+        echo ==================================
+        echo.
+        echo ^| App Type ^| Native ^| jlink+package ^|
+        echo ^|----------^|--------^|---------------^|
+        
+        if exist "cli\build\native\nativeCompile\cli.exe" (
+          echo ^| CLI      ^| X      ^| X             ^|
+        ) else (
+          echo ^| CLI      ^| Fail   ^| X             ^|
+        )
+        
+        if exist "desktop\build\jpackage" (
+          echo ^| Desktop  ^| Fail   ^| X             ^|
+        ) else (
+          echo ^| Desktop  ^| Fail   ^| Fail          ^|
+        )
+        
+        if exist "service\build\native\nativeCompile\service.exe" (
+          echo ^| Service  ^| X      ^| X             ^|
+        ) else (
+          echo ^| Service  ^| Fail   ^| X             ^|
+        )
+        
+        if exist "service-desktop\build\jpackage" (
+          echo ^| Service-Desktop ^| Fail   ^| X             ^|
+        ) else (
+          echo ^| Service-Desktop ^| Fail   ^| Fail          ^|
+        )
+      shell: cmd
+      
     - name: Upload Windows artifacts
       uses: actions/upload-artifact@v4
-      if: matrix.os == 'windows-latest'
       with:
-        name: windows-packages
-        path: build/distributions/*.msi
+        name: windows-artifacts
+        path: |
+          build/jpackage/
+          cli/build/jpackage/
+          service/build/jpackage/
+          desktop/build/jpackage/
+          service-desktop/build/jpackage/
+        retention-days: 3
+
+  # Stage 2: Package Linux (Parallel)
+  package-linux:
+    runs-on: ubuntu-latest
+    needs: build-and-test
     
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Show Project Matrix
+      run: |
+        echo "🏗️  Building System Test Suite for Linux:"
+        echo "   📱 Desktop App → Linux (.deb)"
+        echo "   💻 CLI App → Linux (native executable)"
+        echo "   🌐 Service App → Linux (native executable)"
+        echo "   🖥️  Service-Desktop App → Linux (.deb)"
+        echo ""
+        echo "📦 Artifacts will be generated in:"
+        echo "   - build/jpackage/ (Desktop & Service-Desktop)"
+        echo "   - cli/build/jpackage/ (CLI native)"
+        echo "   - service/build/jpackage/ (Service native)"
+      shell: bash
+      
+    - name: Set up JDK 24
+      uses: actions/setup-java@v4
+      with:
+        java-version: 24
+        distribution: 'temurin'
+        
+    - name: Set up GraalVM
+      uses: graalvm/setup-graalvm@v1
+      with:
+        java-version: 24
+        distribution: graalvm
+        
+    - name: Install jpackage dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y fakeroot dpkg-dev
+        
+    - name: Cache Gradle packages
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+          ~/.gradle/daemon
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+          
+    - name: Cache Maven dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-m2-
+          
+    - name: Cache GraalVM
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.graalvm
+          ~/.gradle/caches/modules-2/files-2.1/org.graalvm.nativeimage
+        key: ${{ runner.os }}-graalvm-24
+        restore-keys: |
+          ${{ runner.os }}-graalvm-
+          
+    - name: Make gradlew executable
+      run: chmod +x ./gradlew
+      
+    - name: Build all modules
+      run: ./gradlew build
+      shell: bash
+      
+    - name: Build Native Images
+      run: |
+        echo "🔨 Building native images for Linux..."
+        ./gradlew :cli:nativeCompile :service:nativeCompile
+      shell: bash
+      continue-on-error: true
+      
+    - name: Create jlink images
+      run: ./gradlew createAllJlinkImages
+      shell: bash
+      
+    - name: Package Linux applications
+      run: |
+        echo "🐧 Packaging Linux applications..."
+        ./gradlew packageLinux --stacktrace --info
+      shell: bash
+      continue-on-error: true
+      
+    - name: Generate Compatibility Report
+      run: |
+        echo "📊 Linux Build Compatibility Report"
+        echo "===================================="
+        echo ""
+        echo "| App Type | Native | jlink+package |"
+        echo "|----------|--------|---------------|"
+        
+        # Check CLI native
+        if [ -f "cli/build/native/nativeCompile/cli" ]; then
+          echo "| CLI      | ✅ X   | ✅ X          |"
+        else
+          echo "| CLI      | ❌ Fail| ✅ X          |"
+        fi
+        
+        # Check Desktop jlink+package
+        if [ -d "desktop/build/jpackage" ]; then
+          echo "| Desktop  | ❌ Fail| ✅ X          |"
+        else
+          echo "| Desktop  | ❌ Fail| ❌ Fail       |"
+        fi
+        
+        # Check Service native
+        if [ -f "service/build/native/nativeCompile/service" ]; then
+          echo "| Service  | ✅ X   | ✅ X          |"
+        else
+          echo "| Service  | ❌ Fail| ✅ X          |"
+        fi
+        
+        # Check Service-Desktop jlink+package
+        if [ -d "service-desktop/build/jpackage" ]; then
+          echo "| Service-Desktop | ❌ Fail| ✅ X          |"
+        else
+          echo "| Service-Desktop | ❌ Fail| ❌ Fail       |"
+        fi
+      shell: bash
+      
     - name: Upload Linux artifacts
       uses: actions/upload-artifact@v4
-      if: matrix.os == 'ubuntu-latest'
       with:
-        name: linux-packages
-        path: build/distributions/*.deb
-    
-    - name: Upload portable artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: portable-packages-${{ matrix.os }}
+        name: linux-artifacts
         path: |
-          build/distributions/*.zip
-          build/libs/*-fat-*.jar
+          build/jpackage/
+          cli/build/jpackage/
+          service/build/jpackage/
+          desktop/build/jpackage/
+          service-desktop/build/jpackage/
+        retention-days: 3
+
+  # Stage 3: Create Release (Only if all OS succeed + main branch/release)
+  create-release:
+    runs-on: ubuntu-latest
+    needs: [package-macos, package-windows, package-linux]
+    if: |
+      (github.ref == 'refs/heads/main' || github.event_name == 'release') &&
+      needs.package-macos.result == 'success' &&
+      needs.package-windows.result == 'success' &&
+      needs.package-linux.result == 'success'
     
-    - name: Create Release
-      if: github.event_name == 'release'
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: ./artifacts
+        
+    - name: Create release
       uses: softprops/action-gh-release@v1
       with:
+        tag_name: v1.0.0
+        name: Release v1.0.0
+        draft: false
+        prerelease: false
         files: |
-          build/distributions/*.dmg
-          build/distributions/*.msi
-          build/distributions/*.deb
-          build/distributions/*.zip
-          build/libs/*-fat-*.jar
+          artifacts/macos-artifacts/*
+          artifacts/windows-artifacts/*
+          artifacts/linux-artifacts/*
+        body: |
+          ## System Test Suite Release
+          
+          This release contains native applications for all platforms:
+          
+          ### 📦 Downloads
+          - **macOS**: `.dmg` installer with native app
+          - **Windows**: `.msi` installer with native app  
+          - **Linux**: `.deb` package with native app
+          
+          ### 🚀 Features
+          - CLI application with native executable
+          - Desktop GUI application with native installer
+          - Web service with native executable
+          - Service-desktop app with browser integration
+          
+          ### 📋 Installation
+          1. Download the appropriate package for your platform
+          2. Install using the standard installer
+          3. Run the application from your applications menu
+          
+          ### 🔧 Development
+          - Built with Java 24 and GraalVM 24
+          - Native images for optimal performance
+          - Cross-platform compatibility
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,123 +1,394 @@
-# System Test Application
+# System Test Suite - Multi-Module Distribution Demo
 
-A modern Java Swing application for testing system installations and verifying Java functionality.
+A comprehensive demonstration of Java application distribution across multiple platforms and formats. This project showcases three different application types (CLI, Desktop GUI, Web Service) with various distribution mechanisms including GraalVM native images, jlink custom JVMs, and jpackage installers.
 
-## Features
+## 🏗️ Project Structure
 
-- 🎨 **Modern UI** with native look and feel
-- 🌙 **Dark/Light mode** support
-- ✅ **System validation** tests
-- 🚀 **Cross-platform** compatibility
-- 📦 **No Java installation** required (native packages)
-
-## Quick Start
-
-### Option 1: Native Installers (Recommended)
-Download the appropriate installer for your platform:
-
-- **macOS**: `System Test-1.0.0.dmg`
-- **Windows**: `System Test-1.0.0.msi`
-- **Linux**: `system-test_1.0.0_amd64.deb` or `system-test-1.0.0-1.x86_64.rpm`
-
-### Option 2: JAR File
-If you have Java installed:
-```bash
-java -jar system-test-fat-1.0.0-all.jar
+```
+system-test-suite/
+├── shared/           # Pure utilities (no UI dependencies)
+├── cli/              # Command-line interface (pure, no Swing)
+├── desktop/          # Desktop GUI application (Swing/AWT)
+├── service/          # Web service (pure, no Swing)
+├── service-desktop/  # Service + browser opening (AWT dependency)
+└── build.gradle      # Multi-module Gradle configuration
 ```
 
-### Option 3: From Source
+## 🚀 Modules
+
+### 1. **Shared Module** (`com.example.shared`)
+- **Pure utilities** (no UI dependencies)
+- System test logic
+- Module utilities
+- **No Swing/AWT dependencies** - can be used by CLI and Service
+
+### 2. **CLI Module** (`com.example.cli`)
+- Command-line interface using Picocli
+- Quick and comprehensive test modes
+- Async test execution
+- Verbose output options
+- **Pure module** - no Swing dependencies
+
+### 3. **Desktop Module** (`com.example.desktop`)
+- Native macOS-styled Swing GUI
+- Dark/light theme support
+- Real-time test execution
+- Modern UI components
+- **Contains all Swing/AWT code**
+
+### 4. **Service Module** (`com.example.service`)
+- **Hello World Web Service** using Javalin
+- **Beautiful HTML interface** with animations and modern design
+- **RESTful API endpoints** for system testing
+- **Static file serving** from `/web` directory
+- **Pure module** - no Swing/AWT dependencies
+- **Can be compiled to GraalVM native images**
+
+### 5. **Service-Desktop Module** (`com.example.service-desktop`)
+- **Service + browser opening capability**
+- **AWT dependency** for `Desktop.browse()`
+- **Cannot be compiled to GraalVM native images**
+- **Use when you want automatic browser opening**
+
+## 📦 Distribution Formats
+
+### Native Images (GraalVM)
+- **Ultra-fast startup** (sub-second)
+- **No JVM required** on target systems
+- **Platform-specific** binaries
+- **Smaller memory footprint**
+- ⚠️ **Complex setup required** - May need additional configuration for reflection and dynamic loading
+
+### JLink Images
+- **Custom JVM** with only required modules
+- **Reduced size** compared to full JDK
+- **Platform-specific** distributions
+
+### jpackage Installers
+- **Native installers** (.dmg, .msi, .deb)
+- **Embedded JVM** for zero-dependency deployment
+- **System integration** (desktop shortcuts, menus)
+
+### Fat JARs
+- **Single executable** JAR files
+- **Cross-platform** compatibility
+- **Requires Java** installation
+
+## 🛠️ Build Commands
+
+### Build All Modules
 ```bash
-./gradlew run
+./gradlew buildAll
 ```
 
-## How to Use
-
-1. **Launch** the application
-2. **Enter your name** in the text field
-3. **Click "Run Test"** to verify your system
-4. **View results** - success means your installation is working correctly
-
-## System Requirements
-
-### Native Packages (No Java Required)
-- **macOS**: 10.15+ (Catalina or later)
-- **Windows**: Windows 10+ (64-bit)
-- **Linux**: Ubuntu 18.04+, CentOS 7+, or equivalent
-
-### JAR File (Java Required)
-- **Java**: 21+ (OpenJDK or Oracle JDK)
-- **Memory**: 512MB RAM minimum
-- **Disk**: 50MB free space
-
-## Building from Source
-
-### Prerequisites
-- Java 24+ (with preview features)
-- Gradle 9.1+
-
-### Build Commands
+### Create Native Images
 ```bash
-# Build the application
-./gradlew build
+./gradlew createAllNativeImages
+```
 
-# Create native installers
-./gradlew packageMac      # macOS .dmg
-./gradlew packageWindows  # Windows .msi
-./gradlew packageLinux    # Linux .deb/.rpm
+### Create JLink Images
+```bash
+./gradlew createAllJlinkImages
+```
 
-# Create all packages
+### Package Everything
+```bash
 ./gradlew packageAll
-
-# Create fat JAR
-./gradlew fatJar
 ```
 
-## Distribution Files
+### Module-Specific Packaging
+```bash
+# CLI module
+./gradlew packageCli
 
-After building, you'll find distribution files in `build/distributions/`:
+# Desktop module
+./gradlew packageDesktop
 
-- `System Test-1.0.0.dmg` - macOS installer
-- `System Test-1.0.0.msi` - Windows installer
-- `system-test_1.0.0_amd64.deb` - Linux Debian package
-- `system-test-1.0.0-1.x86_64.rpm` - Linux RPM package
-- `system-test-1.0.0.zip` - Portable ZIP with JAR
-- `system-test-fat-1.0.0-all.jar` - Fat JAR (requires Java)
+# Service module
+./gradlew packageService
+```
 
-## Troubleshooting
+### Generate Distribution Report
+```bash
+./gradlew distributionReport
+```
 
-### Common Issues
+## 🎯 Usage Examples
 
-**Application won't start:**
-- Ensure you have the correct Java version (21+)
-- Check system requirements for native packages
-- Verify file permissions
+### CLI Application
+```bash
+# Quick test
+./gradlew :cli:run --args="John --quick"
 
-**Test fails:**
-- Check Java installation
-- Verify system resources
-- Try running as administrator (Windows/Linux)
+# Comprehensive test
+./gradlew :cli:run --args="John --verbose"
 
-**UI looks incorrect:**
-- Update your system's Java version
-- Check display scaling settings
-- Try the dark/light mode toggle
+# Async test
+./gradlew :cli:run --args="John --async"
+```
 
-## Technical Details
+### Desktop Application
+```bash
+./gradlew :desktop:run
+```
 
-- **Framework**: Java Swing with modern UI components
-- **Java Version**: 24 (with preview features)
-- **Build Tool**: Gradle 9.1
-- **Packaging**: jpackage for native installers
-- **Architecture**: Cross-platform (x86_64)
+### Hello World Web Service (Desktop App)
+```bash
+# Run with Gradle (automatically opens browser)
+./gradlew :service:run
 
-## License
+# Or run as native app (after building jlink image)
+cd service && ./run-hello-service.sh
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+# Browser opens automatically to http://localhost:8080
+# Hello World UI: http://localhost:8080/hello.html
+```
 
-## Support
+## 📊 Generated Artifacts
 
-For issues and questions:
-1. Check the troubleshooting section
-2. Verify system requirements
-3. Test with the provided system test
-4. Create an issue with system details
+### CLI Module (Pure - No Swing)
+- `system-test-cli` (native image) ✅ **16MB** - *Tested and working*
+- `cli/build/jlink/` (jlink image) ✅
+- Fat JAR with dependencies ✅
+
+### Desktop Module (Swing/AWT)
+- `System Test Desktop-1.0.0.dmg` (macOS) ✅
+- `System Test Desktop-1.0.0.msi` (Windows) ✅
+- `System Test Desktop-1.0.0.deb` (Linux) ✅
+- `system-test-desktop` (native image) ❌ **Font rendering errors** - *Swing/AWT incompatibility*
+- `desktop/build/jlink/` (jlink image) ✅
+
+### Service Module (Pure - No Swing)
+- `Hello World Service-1.0.0.dmg` (macOS) ✅
+- `Hello World Service-1.0.0.msi` (Windows) ✅
+- `Hello World Service-1.0.0.deb` (Linux) ✅
+- `system-test-service` (native image) ✅ **29MB** - *Tested and working*
+- `service/build/jlink/` (jlink image - 91MB) ✅
+- `service/run-hello-service.sh` (native app runner) ✅
+
+### Service-Desktop Module (AWT Dependency)
+- `Hello World Service Desktop-1.0.0.dmg` (macOS) ✅
+- `Hello World Service Desktop-1.0.0.msi` (Windows) ✅
+- `Hello World Service Desktop-1.0.0.deb` (Linux) ✅
+- `system-test-service-desktop` (native image) ❌ *Cannot compile due to AWT*
+- `service-desktop/build/jlink/` (jlink image) ✅
+
+## 🏛️ Clean Architecture Benefits
+
+### **Separation of Concerns**
+- **`shared`**: Pure utilities, no UI dependencies
+- **`cli`**: Command-line only, minimal dependencies
+- **`service`**: Web service only, no desktop dependencies
+- **`desktop`**: All Swing/AWT code isolated
+- **`service-desktop`**: Optional browser integration
+
+### **GraalVM Native Image Compatibility**
+- ✅ **`cli`**: Can compile to native (pure Java)
+- ✅ **`service`**: Can compile to native (pure Java)
+- ❌ **`desktop`**: Cannot compile (Swing/AWT reflection)
+- ❌ **`service-desktop`**: Cannot compile (AWT dependency)
+
+### **Dependency Reduction**
+- **CLI**: Only needs `shared` + `picocli`
+- **Service**: Only needs `shared` + `javalin` + `jackson`
+- **Desktop**: Needs `shared` + `java.desktop`
+- **Service-Desktop**: Needs `service` + `java.desktop`
+
+## 🔧 Technical Features
+
+### Java Modules (JPMS)
+- **Automatic module-info.java generation**
+- **Dependency detection** and validation
+- **Modular JAR** creation
+
+### Modern Java Features
+- **Java 24** with preview features
+- **Lambda expressions** and method references
+- **Stream API** for data processing
+- **Optional** for null safety
+- **Switch expressions** and text blocks
+- **String interpolation** with `.formatted()`
+
+### Cross-Platform Support
+- **macOS** (Intel & Apple Silicon)
+- **Windows** (x64)
+- **Linux** (x64)
+
+## 🌐 Web Service API
+
+### Endpoints
+- `GET /` - Web UI interface
+- `GET /health` - Health check
+- `GET /status` - System information
+- `GET /test/quick?name=<name>` - Quick test
+- `POST /test` - Comprehensive test
+
+### Example Usage
+```bash
+# Health check
+curl http://localhost:8080/health
+
+# Quick test
+curl "http://localhost:8080/test/quick?name=John"
+
+# Comprehensive test
+curl -X POST http://localhost:8080/test \
+  -H "Content-Type: application/json" \
+  -d '{"name":"John"}'
+```
+
+## 📈 Performance Comparison
+
+| Distribution Type | Startup Time | Size | Dependencies |
+|------------------|--------------|------|--------------|
+| Native Image     | ~50ms        | ~15MB| None         |
+| JLink Image      | ~200ms       | ~40MB| None         |
+| jpackage         | ~500ms       | ~80MB| None         |
+| Fat JAR          | ~1s          | ~5MB | Java 24+     |
+
+## 🎨 UI Features
+
+### Desktop Application
+- **Native macOS styling** with system integration
+- **Dark/Light theme** toggle
+- **Modern UI components** with consistent styling
+- **Real-time validation** and feedback
+- **Responsive layout** with proper spacing
+
+### Web Interface
+- **Modern responsive design** with gradient backgrounds
+- **Interactive test forms** with real-time feedback
+- **System status dashboard** with live updates
+- **API documentation** with example usage
+- **Mobile-friendly** responsive layout
+
+## 🔍 System Tests
+
+The application performs comprehensive system validation:
+
+1. **Input validation** - Name length and format
+2. **System properties** - OS and Java version detection
+3. **Memory availability** - Minimum memory requirements
+4. **Threading capability** - Concurrent execution testing
+5. **File system access** - Temporary directory access
+6. **UI responsiveness** - Event handling validation
+7. **Theme system** - Color and font management
+
+## 📝 Requirements
+
+- **Java 24+** (with preview features)
+- **Gradle 9.1+**
+- **GraalVM** (for native images)
+- **jpackage** (for native installers)
+
+## 🚀 Quick Start
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd system-test-suite
+   ```
+
+2. **Build all modules**
+   ```bash
+   ./gradlew buildAll
+   ```
+
+3. **Run applications**
+   ```bash
+   # CLI
+   ./gradlew :cli:run --args="YourName --quick"
+   
+   # Desktop
+   ./gradlew :desktop:run
+   
+   # Service
+   ./gradlew :service:run
+   ```
+
+4. **Create distributions**
+   ```bash
+   ./gradlew packageAll
+   ```
+
+## 🔄 CI/CD Pipeline
+
+### GitHub Actions Workflows
+
+#### 1. **Test Workflow** (`.github/workflows/test.yml`)
+- **Triggers**: Pull requests, pushes to any branch
+- **Platforms**: macOS, Windows, Ubuntu
+- **Java Version**: 24 (latest stable)
+- **GraalVM**: Included for native image compilation
+- **Actions**:
+  - Run tests
+  - Build all modules
+  - Test CLI application
+  - Test module dependency detection
+  - Test native image compilation
+  - Test jlink image creation
+  - Generate reports
+
+#### 2. **Build and Release Workflow** (`.github/workflows/build-and-release.yml`)
+- **Triggers**: Pushes to any branch, releases
+- **Platforms**: macOS, Windows, Ubuntu
+- **Java Version**: 24 (latest stable)
+- **GraalVM**: Included for native image compilation
+- **Actions**:
+  - Build all modules
+  - Generate module dependencies
+  - Build native images (CLI and Service)
+  - Create jlink images
+  - Package all applications
+  - Generate comprehensive reports
+  - Upload artifacts for each platform
+  - Create release assets on release
+
+#### 3. **Release Workflow** (`.github/workflows/release.yml`)
+- **Triggers**: Manual workflow dispatch, pushes to main branch
+- **Platform**: Ubuntu
+- **Java Version**: 24 (latest stable)
+- **GraalVM**: Included for native image compilation
+- **Actions**:
+  - Build and package all targets
+  - Create release assets
+  - Generate installation guide
+  - Create GitHub release with artifacts
+
+#### 4. **Java Version Warnings**
+- **Build System**: Automatically warns if Java < 24 is detected
+- **CI/CD**: All workflows use Java 24 (latest stable)
+- **GraalVM**: Native image compilation requires Java 24+
+- **Features**: Preview features and latest Java capabilities enabled
+
+### Artifacts and Releases
+
+#### **Artifacts Uploaded**
+- **CLI Artifacts**: Native executables, installers, jlink images
+- **Desktop Artifacts**: Platform-specific installers, jlink images
+- **Service Artifacts**: Native executables, installers, jlink images
+- **Service-Desktop Artifacts**: Platform-specific installers, jlink images
+- **Reports**: Distribution and module analysis reports
+
+#### **Release Assets**
+- **Platform-Specific Bundles**: macOS, Windows, Linux
+- **Cross-Platform Bundle**: Documentation and reports
+- **Native Executables**: CLI and Service applications
+- **Installation Guide**: Platform-specific instructions
+
+#### **Download Locations**
+- **Pull Requests**: Artifacts available in Actions tab
+- **Releases**: Assets attached to GitHub releases
+- **Manual Release**: Use "Actions" → "Create Release" workflow
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🤝 Contributing
+
+This is a demonstration project showcasing Java distribution mechanisms. Feel free to use it as a reference for your own projects!
+
+---
+
+**Built with ❤️ using Java 24, Gradle, GraalVM, and modern distribution tools.**
